@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yapay Zeka Eğitimi</title>
+
+
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: #ffffff;
+    color: #111111;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2.6rem;
+    margin: 0 0 36px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 560px;
+  }
+  .btn {
+    border: none;
+    border-radius: 10px;
+    padding: 16px 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  }
+  .b1 { background: #e53935; }
+  .b2 { background: #fb8c00; }
+  .b3 { background: #f9a825; }
+  .b4 { background: #43a047; }
+  .b5 { background: #00897b; }
+  .b6 { background: #039be5; }
+  .b7 { background: #1e40af; }
+  .b8 { background: #8e24aa; }
+  .b9 { background: #d81b60; }
+  .b10 { background: #6d4c41; }
+</style>
+</head>
+<body>
+  <h1>Yapay Zeka Eğitimi</h1>
+  <h1>Modül 1: Prompt Müh. Giriş ve Temel Kavramlar Similatorü</h1>
+  <div class="grid">
+    <button class="btn b1" onclick="window.open('NasılDusunurAdımAdımSimilasyonu.html', '_blank')">Adım Adım Nasıl Düşünür</button>
+    <button class="btn b2" onclick="window.open('NasılDusunurSimilasyonu.html', '_blank')">Ypz Nasıl Düşünür</button>
+    <button class="btn b3" onclick="window.open('TokernizasyonSimilasyonu.html', '_blank')">Tokernizasyon</button>
+    <button class="btn b4" onclick="window.open('PromptOptimizasyonMetodojileriSimilasyonu.html', '_blank')">Token Optimizasyonu</button>
+    <button class="btn b5" onclick="window.open('BaglamPenceresiSimilasyonu.html', '_blank')" >Bağlam Penceresi</button>
+    <button class="btn b6" onclick="window.open('HalusinasyonAvıSimilasyonu.html', '_blank')">Halüsülasyon</button>
+    <button class="btn b7" onclick="window.open('OrtadaKaybolmaSimilasyonu.html', '_blank')">Ortada Kaybolma</button>
+    <button class="btn b8" onclick="window.open('YpzEtikSimilasyonu.html', '_blank')" >Yapay Zeka Etiği</button>
+    <button class="btn b9" onclick="window.open('PromptAnatomisiSimilasyonu.html', '_blank')">Propmt Anatomisi</button>
+    <button class="btn b10" onclick="window.open('TemelPromptAnatomisi.html', '_blank')">Temel Prompt Mantığı</button>
+  </div>
+</body>
+</html>

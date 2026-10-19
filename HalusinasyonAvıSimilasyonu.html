@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Halüsinasyon Avı</title>
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#14231c;--mute:#5a6b62;--line:#cfdad3;--acc:#0f6b4f;--accink:#fff;--ok:#0f6b4f;--okbg:#dff2e8;--bad:#a4262c;--badbg:#fbe3e3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a15;--card:#18271f;--ink:#e8f1ec;--mute:#9bb0a4;--line:#2d4238;--acc:#5fd3a3;--accink:#0b1a13;--ok:#5fd3a3;--okbg:#17372a;--bad:#ff8f95;--badbg:#3d1c1f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1a15;--card:#18271f;--ink:#e8f1ec;--mute:#9bb0a4;--line:#2d4238;--acc:#5fd3a3;--accink:#0b1a13;--ok:#5fd3a3;--okbg:#17372a;--bad:#ff8f95;--badbg:#3d1c1f;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 Georgia,"Times New Roman",serif}
+main{max-width:680px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:2rem;line-height:1.15;margin:8px 0 10px}
+.sans{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+p{margin:0 0 14px}
+.mute{color:var(--mute)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 18px}
+.bar i{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
+.meta{display:flex;justify-content:space-between;font-size:.9rem}
+.box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
+.tag{display:inline-block;font-size:.85rem;border:1px solid var(--line);border-radius:20px;padding:2px 10px;margin-bottom:12px;color:var(--mute)}
+.q{font-size:1.2rem;font-weight:bold;margin:0 0 14px}
+.sc{background:var(--bg);border-left:4px solid var(--acc);padding:10px 14px;margin:0 0 16px;font-style:italic}
+button{font:inherit;cursor:pointer}
+.opt{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.opt:hover:not(:disabled){border-color:var(--acc)}
+.opt:focus-visible,.btn:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.opt.ok{background:var(--okbg);border-color:var(--ok)}
+.opt.no{background:var(--badbg);border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.fb{margin-top:6px;padding:14px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.fb b.g{color:var(--ok)}.fb b.r{color:var(--bad)}
+.btn{background:var(--acc);color:var(--accink);border:0;border-radius:8px;padding:12px 22px;margin-top:14px;font-weight:bold}
+.disc{margin-top:16px;padding:12px 14px;border:1px dashed var(--line);border-radius:8px;font-size:.95rem}
+.big{font-size:3rem;font-weight:bold;line-height:1;margin:6px 0}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+var Q=[
+{t:"Kavram",q:"Halüsinasyon nedir?",o:["Modelin bilerek yalan söylemesi","Yanlış veya uydurma bilginin kendinden emin ve akıcı biçimde sunulması","İnternet bağlantısının kopması nedeniyle cevap verememesi"],a:1,e:"Modelde niyet yoktur. Asıl tehlike, yanlışın doğru kadar ikna edici görünmesidir.",d:"Sizce en son ne zaman yapay zekânın kendinden emin ama yanlış bir cevabıyla karşılaştınız?"},
+{t:"Neden",q:"Bir dil modelinin temel çalışma mantığı hangisidir?",o:["Veritabanında doğru bilgiyi arayıp bulmak","Verilen metnin en olası devamını üretmek","Bilmediği soruları otomatik olarak atlamak"],a:1,e:"Model olası ve akıcı metin üretir. “Doğru” ile “doğru gibi görünen” arasındaki farkı kendiliğinden garanti etmez.",d:"Telefonunuzun kelime önerisiyle bu çalışma mantığı arasında ne benzerlik var?"},
+{t:"Risk tespiti",q:"Aşağıdaki promptlardan hangisinde halüsinasyon riski en yüksektir?",o:["“Aşağıdaki metni 3 maddede özetle.” (metin ekli)","“Bu konuda Türkçe 5 akademik makaleyi yazar, yıl ve DOI ile ver.”","“Bu cümledeki yazım hatalarını düzelt.”"],a:1,e:"Kaynak, künye, DOI gibi çok spesifik bilgi istendiğinde ve model arama yapamıyorsa, gerçekçi görünen sahte kaynaklar üretebilir.",d:"Kendi işinizde modelden istediğiniz “spesifik” bilgilere örnek verin."},
+{t:"Yanlış öncül",q:"Prompt: “Einstein’ın 1935’te kazandığı ikinci Nobel Ödülü hakkında bilgi ver.” Hangi yanıt güvenilirdir?",o:["İkinci ödülün konusunu ve törenini ayrıntılı anlatan yanıt","Einstein’ın yalnızca bir Nobel’i (1921) olduğunu belirterek öncülü düzelten yanıt","Ödülü anlatıp sonunda “yanlış olabilir” diyen yanıt"],a:1,e:"Zayıf yanıtlar sorudaki yanlış varsayımı kabul edip üstüne hikâye kurar. İyi yanıt öncülü sorgular.",d:"Sorularınızda farkında olmadan yanlış varsayım kullanmış olabilir misiniz?"},
+{t:"Gerçek vaka",q:"2023’te bir avukat, yapay zekânın ürettiği ve gerçekte var olmayan emsal davaları mahkemeye sundu (Mata v. Avianca). Buradan çıkan temel ders nedir?",o:["Yapay zekâ hukuk işlerinde asla kullanılmamalı","Üretilen kaynaklar ve alıntılar insan tarafından doğrulanmadan kullanılmamalı","Yapay zekâya daha uzun prompt yazmak sorunu çözer"],a:1,e:"Araç kullanılabilir, ama kaynak ve alıntıların doğrulanması kullanıcının sorumluluğundadır.",d:"Sizin mesleğinizde “mutlaka doğrulanması gereken” çıktılar neler?"},
+{t:"Prompt düzeltme",q:"“Şirketimizin bu yılki satış performansını analiz et.” promptu neden risklidir ve en iyi düzeltme hangisidir?",o:["Model veriyi görmediği için rakam uydurabilir; tabloyu ekleyip “sadece tabloya dayan, olmayan bilgi için ‘veri yok’ yaz” demek","Çok kısa olduğu için; daha uzun ve süslü yazmak","Model satış bilmediği için; konuyu İngilizceye çevirmek"],a:0,e:"Bağlam (veri) vermek ve “veri yoksa söyle” izni tanımak, uydurmayı belirgin biçimde azaltır.",d:"Kendi işinizden bir promptu bu şekilde yeniden yazar mısınız?"},
+{t:"Dalkavukluk",q:"“Bence bu rakam doğru, değil mi?” sorusu neden risklidir?",o:["Model kullanıcıyı memnun etmeye yatkın olduğu için hatalı bir görüşe katılabilir","Soru çok kısa olduğu için","Model rakamları hiç değerlendiremediği için"],a:0,e:"Yönlendirici sorular dalkavukluğu tetikler. Daha iyisi: “Bu rakamı doğrula, tutarsızlık veya hata varsa belirt.”",d:"Hangi sorularınız farkında olmadan cevabı yönlendiriyor olabilir?"},
+{t:"Prompt tekniği",q:"Hangisi halüsinasyonu azaltmaya yardımcı OLMAZ?",o:["“Emin değilsen bilmiyorum de.”","“Sadece verdiğim metne dayan.”","“Her zaman kesin ve özgüvenli yaz, belirsizlik belirtme.”"],a:2,e:"Belirsizliği yasaklamak modeli tahmine iter. Belirsizliği açıkça belirtmesine izin vermek güvenilirliği artırır.",d:"Bu üç talimatı kendi promptlarınızda nasıl kullanırdınız?"},
+{t:"Güncellik",q:"“Bu yılki asgari ücret ne kadar?” sorusuna model neden eski bir rakam verebilir?",o:["Modelin bilgi kesim tarihi vardır ve sonrasını bilmez","Model rakamlardan hoşlanmaz","Türkçe sorular her zaman yanlış yanıtlanır"],a:0,e:"Vergi oranı, ücret, mevzuat gibi değişen bilgiler için güncel kaynak veya arama özelliği gerekir.",d:"İşinizde sık değişen hangi bilgiler için modele güvenmezdiniz?"},
+{t:"Kurumsal kullanım",q:"Air Canada’nın sohbet botu yanlış bir iade politikası söyledi ve mahkeme şirketi sorumlu tuttu. Müşteriyle konuşan bir botta en doğru önlem hangisi?",o:["Botu serbest bırakıp şikâyet gelirse düzeltmek","Botu şirketin resmî belgelerine bağlamak, kapsam dışı sorularda insana yönlendirmek","Bota “yanlış yapma” demek"],a:1,e:"Kaynağa bağlama, kapsam sınırı ve insana devir mekanizması kurumsal güvenliğin temelidir.",d:"Kurumunuzda yapay zekâ ile müşteriye verilen bir bilgi için kim sorumlu olurdu?"}
+];
+var app=document.getElementById("app"),i=0,score=0,answered=false,order=[];
+function shuf(n){var a=[],k,j,t;for(k=0;k<n;k++)a.push(k);for(k=n-1;k>0;k--){j=Math.floor(Math.random()*(k+1));t=a[k];a[k]=a[j];a[j]=t}return a}
+function start(){i=0;score=0;app.innerHTML='<p class="sans mute">Prompt mühendisliği eğitimi</p><h1>Halüsinasyon avı</h1><p>10 kısa soru. Her cevabın ardından açıklamayı okuyun ve tartışma sorusunu sunucuyla paylaşın.</p><p class="mute">Doğru cevapların yeri her seferinde değişir.</p><button class="btn sans" id="go">Teste başla</button>';document.getElementById("go").onclick=show}
+function show(){
+ var q=Q[i];answered=false;order=shuf(q.o.length);
+ var h='<div class="meta sans mute"><span>Soru '+(i+1)+' / '+Q.length+'</span><span>Puan: '+score+'</span></div><div class="bar"><i style="width:'+(i/Q.length*100)+'%"></i></div><div class="box"><span class="tag sans">'+q.t+'</span><p class="q">'+q.q+'</p>';
+ order.forEach(function(k,p){h+='<button class="opt" data-k="'+k+'">'+q.o[k]+'</button>'});
+ h+='<div id="fb"></div></div>';app.innerHTML=h;
+ var b=app.querySelectorAll(".opt");for(var n=0;n<b.length;n++)b[n].onclick=pick;
+ window.scrollTo(0,0)
+}
+function pick(e){
+ if(answered)return;answered=true;var q=Q[i],k=+e.currentTarget.getAttribute("data-k"),good=k===q.a;
+ if(good)score++;
+ var b=app.querySelectorAll(".opt");
+ for(var n=0;n<b.length;n++){var kk=+b[n].getAttribute("data-k");b[n].disabled=true;if(kk===q.a)b[n].classList.add("ok");else if(kk===k)b[n].classList.add("no")}
+ var last=i===Q.length-1;
+ document.getElementById("fb").innerHTML='<div class="fb"><b class="'+(good?"g":"r")+'">'+(good?"Doğru.":"Bu sefer olmadı.")+'</b> '+q.e+'</div><div class="disc"><b>Tartışma:</b> '+q.d+'</div><button class="btn sans" id="nx">'+(last?"Sonucu gör":"Sonraki soru")+'</button>';
+ document.getElementById("nx").onclick=function(){i++;if(i<Q.length)show();else end()};
+ document.getElementById("nx").focus()
+}
+function end(){
+ var m=score>=9?"Halüsinasyon avcısı. Riskleri hızlı fark ediyorsunuz.":score>=6?"İyi gidiyorsunuz. Birkaç konuyu pekiştirmek yeterli.":"Başlangıç için güzel bir nokta. Açıklamaları tekrar gözden geçirin.";
+ app.innerHTML='<div class="bar"><i style="width:100%"></i></div><div class="box"><p class="sans mute">Sonuç</p><div class="big">'+score+' / '+Q.length+'</div><p>'+m+'</p><p class="mute">Şimdi gerçek bir göreve geçin: modelden kendi sektörünüzle ilgili 5 kaynak isteyin ve internette doğrulayın. Sonra aynı isteği “Emin değilsen uydurma, bilmiyorum de” talimatıyla tekrarlayıp farkı karşılaştırın.</p><button class="btn sans" id="rs">Testi yeniden başlat</button></div>';
+ document.getElementById("rs").onclick=start
+}
+start();
+</script>
+</body>
+</html>

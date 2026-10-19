@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yapay Zekanın Düşünme Süreci</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: white; overflow: hidden; }
+        .step-container { display: none; opacity: 0; transition: opacity 0.5s ease-in-out; height: 100%; flex-direction: column; align-items: center; justify-content: center; }
+        .step-container.active { display: flex; opacity: 1; }
+        
+        /* Step 1 Styles */
+        .word-cloud { position: relative; width: 600px; height: 400px; transition: all 1s ease; }
+        .word { position: absolute; transition: all 1s ease; font-weight: bold; font-size: 1.5rem; color: #94a3b8; }
+        .neighborhood { position: absolute; border: 2px dashed transparent; border-radius: 1rem; padding: 1rem; transition: all 1s ease; opacity: 0; text-align: center; }
+        
+        /* Step 2 Styles */
+        .sentence-box { font-size: 2rem; line-height: 2; text-align: center; max-width: 800px; }
+        .token { display: inline-block; padding: 0.2rem 0.5rem; margin: 0.2rem; border-radius: 0.5rem; transition: all 0.8s ease; border: 2px solid transparent; }
+        .token.dimmed { opacity: 0.3; filter: grayscale(100%); }
+        .token.highlighted { color: #ef4444; border-color: #ef4444; background-color: rgba(239, 68, 68, 0.1); box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); transform: scale(1.1); z-index: 10; position: relative; }
+        .red-string-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+        /* Step 3 & 4 Styles */
+        .pool-container { display: flex; flex-direction: column; gap: 1rem; width: 400px; margin-top: 2rem; }
+        .pool-item { display: flex; align-items: center; background: #1e293b; padding: 1rem; border-radius: 0.5rem; transition: all 0.3s ease; border: 2px solid transparent; }
+        .pool-item .bar { height: 100%; background: #3b82f6; border-radius: 0.25rem; transition: width 0.5s ease; }
+        .pool-item.active-spin { border-color: #fbbf24; background: #451a03; transform: scale(1.05); }
+        .pool-item.selected { border-color: #10b981; background: #064e3b; }
+        
+        .flying-word { position: absolute; font-size: 1.5rem; font-weight: bold; color: #10b981; transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; }
+        
+        .main-sentence { min-height: 80px; font-size: 1.8rem; background: #1e293b; padding: 1rem 2rem; border-radius: 1rem; border-left: 4px solid #3b82f6; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+        
+        .loop-arrow { font-size: 3rem; color: #3b82f6; margin-top: 2rem; opacity: 0; transition: opacity 0.5s, transform 1s ease; transform: rotate(0deg); }
+        .loop-arrow.spin { opacity: 1; transform: rotate(-360deg); }
+
+        #progress-bar { transition: width 0.3s ease; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="p-6 border-b border-slate-700 bg-slate-900 flex justify-between items-center z-20">
+        <div>
+            <h1 class="text-2xl font-bold text-sky-400" id="step-title">Hazırlanıyor...</h1>
+            <p class="text-slate-400 mt-1" id="step-desc">Lütfen bekleyin...</p>
+        </div>
+        <div class="flex gap-4">
+            <button id="btn-action" class="px-6 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-semibold transition-colors shadow-lg shadow-sky-900/50">
+                Oynat <i class="fa-solid fa-play ml-2"></i>
+            </button>
+            <button id="btn-next" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors hidden">
+                Sonraki Adım <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Progress -->
+    <div class="w-full h-1 bg-slate-800">
+        <div id="progress-bar" class="h-full bg-sky-500 w-1/4"></div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 relative p-8">
+        
+        <!-- STEP 1: Bağlamı Koklama -->
+        <div id="step1" class="step-container active">
+            <div class="word-cloud" id="word-cloud">
+                <!-- Neighborhoods -->
+                <div class="neighborhood" id="nh-tip" style="left: 0; top: 50px; width: 180px; height: 300px; border-color: #10b981;">
+                    <h3 class="text-emerald-500 font-bold mb-4">Tıp Mahallesi</h3>
+                </div>
+                <div class="neighborhood" id="nh-finans" style="left: 200px; top: 50px; width: 180px; height: 300px; border-color: #3b82f6;">
+                    <h3 class="text-blue-500 font-bold mb-4">Finans Mahallesi</h3>
+                </div>
+                <div class="neighborhood" id="nh-sanat" style="left: 400px; top: 50px; width: 180px; height: 300px; border-color: #a855f7;">
+                    <h3 class="text-purple-500 font-bold mb-4">Sanat Mahallesi</h3>
+                </div>
+
+                <!-- Words -->
+                <div class="word" id="w1" style="left: 50px; top: 50px;">Hastane</div>
+                <div class="word" id="w2" style="left: 450px; top: 150px;">Fatura</div>
+                <div class="word" id="w3" style="left: 250px; top: 80px;">Şiir</div>
+                <div class="word" id="w4" style="left: 100px; top: 250px;">Reçete</div>
+                <div class="word" id="w5" style="left: 300px; top: 300px;">Bütçe</div>
+                <div class="word" id="w6" style="left: 400px; top: 50px;">Kafiye</div>
+                <div class="word" id="w7" style="left: 150px; top: 150px;">Denetim</div>
+            </div>
+            
+            <div id="s1-prompt" class="mt-12 bg-slate-800 p-4 rounded-xl border border-slate-600 text-xl font-mono text-center opacity-0 transition-opacity duration-1000">
+                <span class="text-slate-400">Kullanıcı:</span> "Denetim raporundaki bütçe ve fatura verilerini..."
+            </div>
+        </div>
+
+        <!-- STEP 2: Odaklanma -->
+        <div id="step2" class="step-container">
+            <div class="relative w-full h-full flex flex-col items-center justify-center">
+                <svg class="red-string-container" id="svg-lines"></svg>
+                <div class="sentence-box" id="s2-sentence">
+                    <span class="token" id="t1">Kurumun</span> 
+                    <span class="token" id="t2">2024</span> 
+                    <span class="token relative" id="t3">yılı</span> 
+                    <span class="token" id="t4">doğrudan temin</span> 
+                    <span class="token" id="t5">dosyalarındaki</span> 
+                    <span class="token" id="t6">fiyat</span> 
+                    <span class="token" id="t7">şişirme</span> 
+                    <span class="token relative" id="t8">ve</span> 
+                    <span class="token" id="t9">usulsüzlük</span> 
+                    <span class="token" id="t10">risklerini</span> 
+                    <span class="token relative" id="t11">lütfen</span> 
+                    <span class="token relative" id="t12">incele.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: Rulet Masası -->
+        <div id="step3" class="step-container">
+            <div class="main-sentence shadow-lg">
+                <span>Yapılan incelemeler sonucunda kurum zararına yol açan açık bir</span>
+                <span id="s3-target-word" class="w-24 border-b-2 border-dashed border-slate-500 inline-block"></span>
+            </div>
+
+            <div class="pool-container" id="s3-pool">
+                <div class="pool-item" id="opt1">
+                    <div class="w-32 font-bold">usulsüzlük</div>
+                    <div class="flex-1 bg-slate-800 h-6 rounded overflow-hidden relative">
+                        <div class="bar" style="width: 60%;"></div>
+                        <span class="absolute inset-0 flex items-center justify-end pr-2 text-xs font-bold">%60</span>
+                    </div>
+                </div>
+                <div class="pool-item" id="opt2">
+                    <div class="w-32 font-bold">hata</div>
+                    <div class="flex-1 bg-slate-800 h-6 rounded overflow-hidden relative">
+                        <div class="bar" style="width: 25%;"></div>
+                        <span class="absolute inset-0 flex items-center justify-end pr-2 text-xs font-bold">%25</span>
+                    </div>
+                </div>
+                <div class="pool-item" id="opt3">
+                    <div class="w-32 font-bold">eksiklik</div>
+                    <div class="flex-1 bg-slate-800 h-6 rounded overflow-hidden relative">
+                        <div class="bar" style="width: 10%;"></div>
+                        <span class="absolute inset-0 flex items-center justify-end pr-2 text-xs font-bold">%10</span>
+                    </div>
+                </div>
+                <div class="pool-item" id="opt4">
+                    <div class="w-32 font-bold text-slate-500">kedi</div>
+                    <div class="flex-1 bg-slate-800 h-6 rounded overflow-hidden relative">
+                        <div class="bar" style="width: 1%;"></div>
+                        <span class="absolute inset-0 flex items-center justify-end pr-2 text-xs font-bold">%1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 4: Döngü -->
+        <div id="step4" class="step-container">
+            <div class="main-sentence shadow-lg" id="s4-sentence">
+                <span>Denetim raporunda açık bir</span>
+            </div>
+
+            <div class="flex gap-16 items-center mt-12 w-full max-w-4xl">
+                <!-- Havuz -->
+                <div class="pool-container mt-0 flex-1" id="s4-pool">
+                    <!-- Dinamik doldurulacak -->
+                </div>
+                
+                <!-- Döngü Oku -->
+                <div class="flex flex-col items-center justify-center flex-1">
+                    <i class="fa-solid fa-rotate-left loop-arrow" id="loop-icon"></i>
+                    <p id="loop-text" class="mt-4 text-sky-400 font-bold opacity-0 transition-opacity">Sistem Başa Dönüyor...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const steps = [
+            {
+                title: "1. Adım: Bağlamı Koklama",
+                desc: "Yapay zeka kelimeleri birer 'yer' olarak görür. Konuya göre doğru mahalleyi bulur.",
+                actionText: "Bağlamı Bul"
+            },
+            {
+                title: "2. Adım: Odaklanma (Dikkat Mekanizması)",
+                desc: "Dedektif gibi dolgu kelimeleri eler, asıl anahtar kelimelere kırmızı ip çeker.",
+                actionText: "Odaklan"
+            },
+            {
+                title: "3. Adım: Zihinsel Rulet Masası",
+                desc: "Gelecek kelimeyi kesin bilmez, ihtimaller havuzundan ağırlıklı kura çeker.",
+                actionText: "Kura Çek (Zar At)"
+            },
+            {
+                title: "4. Adım: Otoregresif Döngü",
+                desc: "Kelimeyi seçer, cümleye ekler ve yeni cümleyle her şeyi baştan hesaplar.",
+                actionText: "Döngüyü Başlat"
+            }
+        ];
+
+        let currentStep = 1;
+        let isAnimating = false;
+
+        const btnAction = document.getElementById('btn-action');
+        const btnNext = document.getElementById('btn-next');
+        const titleEl = document.getElementById('step-title');
+        const descEl = document.getElementById('step-desc');
+        const progressBar = document.getElementById('progress-bar');
+
+        function updateUI() {
+            titleEl.innerText = steps[currentStep-1].title;
+            descEl.innerText = steps[currentStep-1].desc;
+            btnAction.innerHTML = `${steps[currentStep-1].actionText} <i class="fa-solid fa-play ml-2"></i>`;
+            btnAction.classList.remove('hidden');
+            btnNext.classList.add('hidden');
+            progressBar.style.width = `${(currentStep / 4) * 100}%`;
+
+            document.querySelectorAll('.step-container').forEach((el, index) => {
+                if(index + 1 === currentStep) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+            isAnimating = false;
+        }
+
+        btnNext.addEventListener('click', () => {
+            if(currentStep < 4) {
+                currentStep++;
+                updateUI();
+            }
+        });
+
+        btnAction.addEventListener('click', () => {
+            if(isAnimating) return;
+            isAnimating = true;
+            btnAction.classList.add('hidden');
+
+            if(currentStep === 1) animateStep1();
+            if(currentStep === 2) animateStep2();
+            if(currentStep === 3) animateStep3();
+            if(currentStep === 4) animateStep4();
+        });
+
+        // --- ANIMATIONS ---
+
+        function animateStep1() {
+            // Show prompt
+            document.getElementById('s1-prompt').style.opacity = '1';
+            
+            setTimeout(() => {
+                // Show neighborhoods
+                document.querySelectorAll('.neighborhood').forEach(el => el.style.opacity = '1');
+                
+                // Move words to their neighborhoods
+                document.getElementById('w1').style.cssText = "left: 30px; top: 100px;"; // Hastane -> Tıp
+                document.getElementById('w4').style.cssText = "left: 40px; top: 150px;"; // Reçete -> Tıp
+                
+                document.getElementById('w2').style.cssText = "left: 230px; top: 120px;"; // Fatura -> Finans
+                document.getElementById('w5').style.cssText = "left: 240px; top: 180px;"; // Bütçe -> Finans
+                document.getElementById('w7').style.cssText = "left: 220px; top: 230px;"; // Denetim -> Finans
+                
+                document.getElementById('w3').style.cssText = "left: 430px; top: 100px;"; // Şiir -> Sanat
+                document.getElementById('w6').style.cssText = "left: 420px; top: 160px;"; // Kafiye -> Sanat
+
+                setTimeout(() => {
+                    // Highlight Finans, dim others
+                    document.getElementById('nh-tip').style.opacity = '0.2';
+                    document.getElementById('w1').style.opacity = '0.2';
+                    document.getElementById('w4').style.opacity = '0.2';
+                    
+                    document.getElementById('nh-sanat').style.opacity = '0.2';
+                    document.getElementById('w3').style.opacity = '0.2';
+                    document.getElementById('w6').style.opacity = '0.2';
+
+                    document.getElementById('nh-finans').style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                    document.getElementById('w2').style.color = '#38bdf8';
+                    document.getElementById('w5').style.color = '#38bdf8';
+                    document.getElementById('w7').style.color = '#38bdf8';
+
+                    btnNext.classList.remove('hidden');
+                }, 1500);
+            }, 1000);
+        }
+
+        function animateStep2() {
+            const dimIds = ['t1', 't3', 't8', 't11', 't12'];
+            const highlightIds = ['t4', 't6', 't7', 't9', 't10'];
+
+            // Dim stop words
+            dimIds.forEach(id => document.getElementById(id).classList.add('dimmed'));
+
+            setTimeout(() => {
+                // Highlight keywords
+                highlightIds.forEach(id => document.getElementById(id).classList.add('highlighted'));
+                
+                // Draw SVG Lines
+                setTimeout(() => {
+                    const svg = document.getElementById('svg-lines');
+                    svg.innerHTML = ''; // clear
+                    const containerRect = svg.getBoundingClientRect();
+                    
+                    for(let i=0; i<highlightIds.length - 1; i++) {
+                        const el1 = document.getElementById(highlightIds[i]).getBoundingClientRect();
+                        const el2 = document.getElementById(highlightIds[i+1]).getBoundingClientRect();
+                        
+                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        line.setAttribute("x1", el1.left - containerRect.left + el1.width/2);
+                        line.setAttribute("y1", el1.top - containerRect.top + el1.height/2);
+                        line.setAttribute("x2", el2.left - containerRect.left + el2.width/2);
+                        line.setAttribute("y2", el2.top - containerRect.top + el2.height/2);
+                        line.setAttribute("stroke", "rgba(239, 68, 68, 0.5)");
+                        line.setAttribute("stroke-width", "3");
+                        line.setAttribute("stroke-dasharray", "5,5");
+                        svg.appendChild(line);
+                    }
+                    btnNext.classList.remove('hidden');
+                }, 800);
+
+            }, 800);
+        }
+
+        function animateStep3() {
+            const options = ['opt1', 'opt2', 'opt3', 'opt4'];
+            let currentHighlight = 0;
+            let spins = 0;
+            const maxSpins = 15; // How many times it cycles before stopping
+
+            // Roulette sound/visual effect
+            const spinInterval = setInterval(() => {
+                options.forEach(opt => document.getElementById(opt).classList.remove('active-spin'));
+                document.getElementById(options[currentHighlight]).classList.add('active-spin');
+                
+                currentHighlight = (currentHighlight + 1) % options.length;
+                spins++;
+
+                if (spins > maxSpins) {
+                    clearInterval(spinInterval);
+                    // Stop at opt1 (usulsüzlük)
+                    options.forEach(opt => document.getElementById(opt).classList.remove('active-spin'));
+                    
+                    const winner = document.getElementById('opt1');
+                    winner.classList.add('selected');
+                    
+                    setTimeout(() => {
+                        const target = document.getElementById('s3-target-word');
+                        target.innerText = "usulsüzlük";
+                        target.classList.add('text-emerald-400');
+                        target.style.border = "none";
+                        btnNext.classList.remove('hidden');
+                    }, 800);
+                }
+            }, 150);
+        }
+
+        let s4Stage = 0;
+        const s4Data = [
+            { pool: [{w: "usulsüzlük", p: 60}, {w: "hata", p: 25}, {w: "eksiklik", p: 15}], winner: "usulsüzlük" },
+            { pool: [{w: "tespit", p: 70}, {w: "görülmüştür", p: 20}, {w: "riski", p: 10}], winner: "tespit" },
+            { pool: [{w: "edilmiştir.", p: 85}, {w: "ettik.", p: 10}, {w: "olunmuştur.", p: 5}], winner: "edilmiştir." }
+        ];
+
+        function renderS4Pool(stageIndex) {
+            const poolEl = document.getElementById('s4-pool');
+            poolEl.innerHTML = '';
+            if(stageIndex >= s4Data.length) return;
+
+            s4Data[stageIndex].pool.forEach((item, index) => {
+                poolEl.innerHTML += `
+                <div class="pool-item" id="s4-opt-${index}">
+                    <div class="w-32 font-bold">${item.w}</div>
+                    <div class="flex-1 bg-slate-800 h-6 rounded overflow-hidden relative">
+                        <div class="bar" style="width: ${item.p}%;"></div>
+                        <span class="absolute inset-0 flex items-center justify-end pr-2 text-xs font-bold">%${item.p}</span>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function animateStep4() {
+            if(s4Stage >= s4Data.length) {
+                // Done
+                btnAction.innerHTML = "Tamamlandı";
+                btnAction.classList.remove('hidden');
+                btnAction.disabled = true;
+                return;
+            }
+
+            // 1. Highlight winner
+            const winnerIdx = s4Data[s4Stage].pool.findIndex(x => x.w === s4Data[s4Stage].winner);
+            const winnerEl = document.getElementById(`s4-opt-${winnerIdx}`);
+            winnerEl.classList.add('selected');
+
+            setTimeout(() => {
+                // 2. Animate word flying up
+                const sentence = document.getElementById('s4-sentence');
+                const startRect = winnerEl.getBoundingClientRect();
+                
+                const flyingWord = document.createElement('div');
+                flyingWord.className = 'flying-word';
+                flyingWord.innerText = s4Data[s4Stage].winner;
+                flyingWord.style.left = startRect.left + 'px';
+                flyingWord.style.top = startRect.top + 'px';
+                document.body.appendChild(flyingWord);
+
+                // Create a temporary placeholder in sentence to get target position
+                const placeholder = document.createElement('span');
+                placeholder.innerText = s4Data[s4Stage].winner;
+                placeholder.style.opacity = '0';
+                sentence.appendChild(placeholder);
+
+                setTimeout(() => {
+                    const endRect = placeholder.getBoundingClientRect();
+                    flyingWord.style.left = endRect.left + 'px';
+                    flyingWord.style.top = endRect.top + 'px';
+                    
+                    setTimeout(() => {
+                        flyingWord.remove();
+                        placeholder.style.opacity = '1';
+                        placeholder.classList.add('text-emerald-400');
+                        
+                        // 3. Trigger Loop Animation
+                        const arrow = document.getElementById('loop-icon');
+                        const text = document.getElementById('loop-text');
+                        
+                        arrow.classList.add('spin');
+                        text.style.opacity = '1';
+                        
+                        setTimeout(() => {
+                            arrow.classList.remove('spin');
+                            text.style.opacity = '0';
+                            
+                            s4Stage++;
+                            renderS4Pool(s4Stage);
+                            
+                            isAnimating = false;
+                            if(s4Stage < s4Data.length) {
+                                btnAction.innerHTML = "Döngüyü Başlat <i class='fa-solid fa-play ml-2'></i>";
+                                btnAction.classList.remove('hidden');
+                            } else {
+                                btnAction.innerHTML = "Eğitim Tamamlandı";
+                                btnAction.classList.remove('hidden');
+                                btnAction.disabled = true;
+                                btnAction.classList.replace('bg-sky-600', 'bg-emerald-600');
+                            }
+
+                        }, 1000);
+
+                    }, 1000);
+                }, 50);
+
+            }, 800);
+        }
+
+        // Initialize
+        updateUI();
+        renderS4Pool(0);
+
+    </script>
+</body>
+</html>

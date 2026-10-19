@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prompt Anatomisi Etkinliği</title>
+<style>
+:root{--bg:#fafaf7;--card:#fff;--tx:#1f2430;--mut:#6b7280;--ac:#4f46e5;--acbg:#eef0ff;--ok:#15803d;--okbg:#e7f6ec;--no:#b91c1c;--nobg:#fdecec;--bd:#e5e7eb;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#14161c;--card:#1d2029;--tx:#eceef3;--mut:#9aa1af;--ac:#8b93ff;--acbg:#272a45;--ok:#4ade80;--okbg:#14301f;--no:#f87171;--nobg:#3a1c1c;--bd:#2e3340}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#14161c;--card:#1d2029;--tx:#eceef3;--mut:#9aa1af;--ac:#8b93ff;--acbg:#272a45;--ok:#4ade80;--okbg:#14301f;--no:#f87171;--nobg:#3a1c1c;--bd:#2e3340}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 16px}
+.steps{display:flex;gap:8px;margin-bottom:16px}
+.steps div{flex:1;padding:8px;border-radius:10px;background:var(--card);border:1px solid var(--bd);text-align:center;font-size:.85rem;color:var(--mut)}
+.steps .on{background:var(--acbg);color:var(--ac);border-color:var(--ac);font-weight:600}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:14px}
+.q{font-size:1.05rem;margin:0 0 12px;padding:12px;border-left:4px solid var(--ac);background:var(--acbg);border-radius:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:10px 14px}
+button:hover:not(:disabled){border-color:var(--ac)}
+button.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.pri{color:#14161c}}
+button.ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+button.no{background:var(--nobg);border-color:var(--no);color:var(--no)}
+button:disabled{cursor:default;opacity:.85}
+.fb{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:.95rem}
+.fb.ok{background:var(--okbg);color:var(--ok)}.fb.no{background:var(--nobg);color:var(--no)}
+.meta{display:flex;justify-content:space-between;color:var(--mut);font-size:.9rem;margin-bottom:8px}
+.pair{display:grid;gap:10px}
+.pair button{text-align:left;white-space:pre-wrap}
+textarea{width:100%;min-height:150px;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+.chk label{display:block;padding:6px 0}
+.big{font-size:2.4rem;font-weight:700;color:var(--ac);margin:4px 0}
+.weak{background:var(--nobg);color:var(--no);padding:10px 12px;border-radius:8px}
+</style>
+</head>
+<body>
+<main>
+<h1>🧩 Prompt Anatomisi Etkinliği</h1>
+<p class="sub">3 aşama, yaklaşık 15 dakika. Hızlı ve doğru cevap verdikçe puan kazanırsınız.</p>
+<div class="steps" id="steps"></div>
+<div id="app"></div>
+</main>
+<script>
+var BLOCKS=["Rol","Bağlam","Görev","Veri","Kısıt","Format","Örnek"];
+var A1=[
+["Sen, finansal verileri sade bir dille anlatan kıdemli bir CFO danışmanısın.","Rol","Kimlik ve uzmanlık tanımlıyor: “Sen … sın”."],
+["İstanbul’da 80 çalışanlı bir B2B yazılım şirketiyiz ve yeni bir satış uzmanı arıyoruz.","Bağlam","Durumu, şirketi ve amacı anlatıyor."],
+["Aşağıdaki metni özetle ve 3 zayıf noktasını belirle.","Görev","Net eylem fiilleri var: özetle, belirle."],
+["“””\nYorum 1: Kargo hızlıydı ama ürün tarifteki gibi değildi.\n“””","Veri","Üzerinde çalışılacak ham materyal, ayırıcıyla ayrılmış."],
+["En fazla 120 kelime yaz. Emin olmadığın bilgiyi uydurma.","Kısıt","Uzunluk sınırı ve dürüstlük kuralı koyuyor."],
+["Cevabı 3 sütunlu tablo ver: Sorun | Etki | Önerilen Çözüm.","Format","Çıktının görünümünü tarif ediyor."],
+["Girdi: Deri cüzdan, kahverengi\nÇıktı: Zamansız Şıklık: Hakiki Deri Cüzdan","Örnek","İyi sonucun nasıl göründüğünü gösteriyor (few-shot)."]
+];
+var A2=[
+["Müşteriye özür maili yaz.","Online ayakkabı mağazasıyım. Müşterinin siparişi 12 gün geç geldi, kutu hasarlıydı ve sosyal medyada şikayet etti. Samimi ama profesyonel, en fazla 120 kelimelik bir özür e-postası yaz; konu satırı ekle.","Güçlü prompt bağlam, ton, uzunluk ve format veriyor."],
+["Pazarlama planı yap.","Sen bir dijital pazarlama danışmanısın. 5 kişilik bir kafe zinciri için, aylık 20.000 TL bütçeyle 3 aylık Instagram planı hazırla. Çıktıyı haftalık tablo olarak ver.","Sektör, bütçe, süre ve format olmadan sonuç jenerik kalır."],
+["Bu toplantı notlarını düzenle.","Aşağıdaki toplantı notlarından şu başlıklarla bir özet çıkar: Alınan Kararlar, Aksiyonlar (Kim / Ne / Ne zamana), Açık Sorular. Notlarda olmayan bilgiyi ekleme.\n\n“””[notlar]“””","Format, veri ayırıcısı ve “uydurma” kısıtı içeriyor."],
+["Rakiplerimizi analiz et ve logo tasarla, sunum hazırla, çevir.","Önce sadece şunu yap: Aşağıdaki 3 rakibi fiyat, güçlü yan ve zayıf yan açısından karşılaştıran bir tablo hazırla. Sonraki adımları sonra isteyeceğim.","Büyük işi adımlara bölmek kaliteyi artırır."]
+];
+var CHK=[["Rol","Kendime bir rol verdim mi?"],["Bağlam","Durumu, kişiyi ve amacı anlattım mı?"],["Görev","Net bir eylem fiili kullandım mı?"],["Veri","Veriyi ayırıcıyla verdim mi (yoksa gerek yok mu)?"],["Kısıt","Uzunluk, ton veya “uydurma” kuralı koydum mu?"],["Format","Çıktı biçimini belirttim mi?"],["Örnek","Örnek ya da örnek üslup verdim mi?"]];
+var S={stage:0,i:0,s1:0,s2:0,s3:0,done:false,t0:0};
+var $=function(id){return document.getElementById(id)};
+function esc(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function steps(){var n=["1 · Parçayı Tanı","2 · Hangisi Güçlü?","3 · Atölye"];$("steps").innerHTML=n.map(function(x,k){return '<div class="'+(k==S.stage?'on':'')+'">'+x+'</div>'}).join("")}
+function shuffle(a){return a.map(function(x){return[Math.random(),x]}).sort(function(p,q){return p[0]-q[0]}).map(function(p){return p[1]})}
+var P2=[];
+function intro(){steps();$("app").innerHTML='<div class="card"><h2 style="margin-top:0">Hazır mısınız?</h2><p>Önce prompt parçalarını tanıyacak, sonra güçlü prompt’u seçecek, en sonda kendi prompt’unuzu yazacaksınız.</p><button class="pri" onclick="start()">Başla</button></div>'}
+function start(){S={stage:0,i:0,s1:0,s2:0,s3:0,done:false};P2=shuffle(A2.map(function(p){return{p:p,flip:Math.random()<.5}}));stage1()}
+function stage1(){steps();var it=A1[S.i];
+$("app").innerHTML='<div class="card"><div class="meta"><span>Soru '+(S.i+1)+' / '+A1.length+'</span><span>Puan: '+S.s1+'</span></div><p>Bu parça hangi yapı taşı?</p><div class="q" style="white-space:pre-wrap">'+esc(it[0])+'</div><div class="opts" id="o">'+BLOCKS.map(function(b){return '<button data-b="'+b+'">'+b+'</button>'}).join("")+'</div><div id="f"></div></div>';
+document.querySelectorAll("#o button").forEach(function(b){b.onclick=function(){ans1(b)}})}
+function ans1(btn){var it=A1[S.i],ok=btn.dataset.b==it[1];
+document.querySelectorAll("#o button").forEach(function(b){b.disabled=true;if(b.dataset.b==it[1])b.classList.add("ok")});
+if(ok)S.s1+=10;else btn.classList.add("no");
+$("f").innerHTML='<div class="fb '+(ok?'ok':'no')+'">'+(ok?'Doğru! ':'Doğru cevap: '+it[1]+'. ')+it[2]+'</div><p><button class="pri" onclick="next1()">Devam →</button></p>'}
+function next1(){S.i++;if(S.i<A1.length)stage1();else{S.stage=1;S.i=0;stage2()}}
+function stage2(){steps();var o=P2[S.i],p=o.p,a=o.flip?[p[1],p[0]]:[p[0],p[1]];
+$("app").innerHTML='<div class="card"><div class="meta"><span>Soru '+(S.i+1)+' / '+P2.length+'</span><span>Puan: '+S.s2+'</span></div><p>Hangi prompt daha güçlü sonuç verir?</p><div class="pair" id="o">'+a.map(function(t,k){return '<button data-w="'+(t===p[1]?1:0)+'"><b>'+(k?'B':'A')+')</b> '+esc(t)+'</button>'}).join("")+'</div><div id="f"></div></div>';
+document.querySelectorAll("#o button").forEach(function(b){b.onclick=function(){ans2(b,p)}})}
+function ans2(btn,p){var ok=btn.dataset.w=="1";
+document.querySelectorAll("#o button").forEach(function(b){b.disabled=true;if(b.dataset.w=="1")b.classList.add("ok")});
+if(ok)S.s2+=15;else btn.classList.add("no");
+$("f").innerHTML='<div class="fb '+(ok?'ok':'no')+'">'+(ok?'Doğru! ':'Yeşil olan daha güçlü. ')+p[2]+'</div><p><button class="pri" onclick="next2()">Devam →</button></p>'}
+function next2(){S.i++;if(S.i<P2.length)stage2();else{S.stage=2;stage3()}}
+function stage3(){steps();
+$("app").innerHTML='<div class="card"><h3 style="margin-top:0">Prompt’u kurtar</h3><p class="weak">Zayıf prompt: “Satış uzmanı iş ilanı yaz.”</p><p>Bunu, 7 yapı taşını kullanarak yeniden yazın (kendi sektörünüzü uyarlayabilirsiniz). Sonra dürüstçe işaretleyin.</p><textarea id="ta" placeholder="Rol: ...&#10;Bağlam: ...&#10;Görev: ...&#10;Kısıtlar: ...&#10;Format: ..."></textarea><div class="chk" id="ck">'+CHK.map(function(c,k){return '<label><input type="checkbox" value="'+k+'"> '+c[1]+'</label>'}).join("")+'</div><p><button class="pri" onclick="finish()">Bitir ve Sonucu Gör</button></p></div>'}
+function finish(){var n=document.querySelectorAll("#ck input:checked").length;S.s3=n*5;steps();
+var tot=S.s1+S.s2+S.s3,max=A1.length*10+A2.length*15+CHK.length*5,pc=Math.round(tot/max*100);
+var lv=pc>=85?"🏆 Prompt Ustası":pc>=60?"⭐ Prompt Yazarı":"🌱 Prompt Çırağı";
+$("app").innerHTML='<div class="card" style="text-align:center"><div>'+lv+'</div><div class="big">'+tot+' / '+max+'</div><p>Parçayı Tanı: '+S.s1+' · Hangisi Güçlü: '+S.s2+' · Atölye: '+S.s3+'</p><p>Sohbet kutusuna yazın: <b>“'+lv+' – '+tot+' puan”</b></p><p class="sub">İpucu: Yazdığınız prompt’u bir yapay zeka aracına yapıştırıp çıktıyı yorumlayın, sonra bir iyileştirme turu yapın.</p><button class="pri" onclick="start()">Tekrar Oyna</button></div>'}
+intro();
+</script>
+</body>
+</html>

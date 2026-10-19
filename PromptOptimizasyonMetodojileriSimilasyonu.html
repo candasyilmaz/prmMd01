@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Optimizasyon Simülatörü</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        .word-chip {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .word-chip.bad:hover {
+            background-color: #fecdd3; /* rose-200 */
+            border-color: #f43f5e; /* rose-500 */
+        }
+        
+        .word-chip.good:hover {
+            background-color: #e0f2fe; /* sky-200 */
+        }
+
+        .word-chip.deleted {
+            text-decoration: line-through;
+            opacity: 0.4;
+            background-color: #e2e8f0;
+            border-color: #cbd5e1;
+            pointer-events: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar for Chat */
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .metric-bar {
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1), background-color 1s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header & Metrics -->
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Prompt Optimizasyon Simülatörü
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">Yapay Zeka Eğitim Modülü</p>
+            </div>
+            
+            <div class="flex flex-col gap-3 w-full md:w-1/2">
+                <!-- Token Cost -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-slate-600">Token İsrafı (Maliyet)</span>
+                        <span id="token-val">95%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div id="token-bar" class="metric-bar bg-rose-500 h-2 rounded-full" style="width: 95%"></div>
+                    </div>
+                </div>
+                <!-- AI Focus -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-slate-600">Yapay Zeka Odak Seviyesi</span>
+                        <span id="focus-val">20%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div id="focus-bar" class="metric-bar bg-blue-400 h-2 rounded-full" style="width: 20%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-5xl mx-auto w-full px-4 py-8">
+        
+        <!-- Toast Notification Area -->
+        <div id="toast-container" class="fixed top-24 right-4 z-50 flex flex-col gap-2"></div>
+
+        <!-- LEVEL 1: Pruning -->
+        <section id="level-1" class="level-section fade-in bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full text-sm">Modül 1</span>
+                <h2 class="text-lg font-bold text-slate-800">Dolgu Kelimelerini Budama</h2>
+            </div>
+            <p class="text-slate-600 mb-6">Yapay zekanın insan nezaketine ihtiyacı yoktur. Aşağıdaki promptta yer alan <strong class="text-rose-500">gereksiz (dolgu) kelimelere</strong> tıklayarak onları silin ve promptu optimize edin.</p>
+            
+            <div class="bg-slate-50 p-6 rounded-lg border border-slate-200 text-lg leading-loose" id="level1-words">
+                <!-- Words will be injected here via JS -->
+            </div>
+
+            <div class="mt-6 flex justify-between items-center hidden" id="level1-success">
+                <div class="text-emerald-600 font-bold flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Harika! 7 gereksiz kelime silindi, %40 Token tasarrufu sağlandı.
+                </div>
+                <button onclick="nextLevel(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-sm">Sonraki Modül &rarr;</button>
+            </div>
+        </section>
+
+        <!-- LEVEL 2: Formatting -->
+        <section id="level-2" class="level-section fade-in bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 hidden">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full text-sm">Modül 2</span>
+                <h2 class="text-lg font-bold text-slate-800">Bağlamı Yapılandırma</h2>
+            </div>
+            <p class="text-slate-600 mb-6">Yapay zeka karmaşık ve düz metinlerde kaybolabilir. "Doğrudan Temin" süreciyle ilgili aşağıdaki karmaşık metni modelin daha iyi anlaması için yapılandırın.</p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Bad Text -->
+                <div class="bg-rose-50 border border-rose-200 p-5 rounded-lg relative transition-all" id="level2-bad-box">
+                    <div class="absolute top-0 right-0 bg-rose-200 text-rose-700 text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg">Karmaşık Metin</div>
+                    <p class="text-slate-700 mt-2 text-sm leading-relaxed">
+                        Doğrudan temin sürecinde öncelikle bölüm tarafından bir ihtiyaç belirlenir ve ardından piyasa araştırması yapılır daha sonra komisyon tarafından en az 3 firmadan teklif alınması gerekir ve gelen teklifler değerlendirilir en son uygun görülen firmaya sipariş verilir ve mal veya hizmet birim tarafından teslim alınınca muhasebe tarafından ödeme yapılır.
+                    </p>
+                </div>
+
+                <!-- Structured Text (Initially Hidden or showing placeholder) -->
+                <div class="bg-slate-50 border border-dashed border-slate-300 p-5 rounded-lg flex items-center justify-center flex-col gap-4 transition-all" id="level2-good-box">
+                    <p class="text-slate-400 text-sm text-center" id="level2-placeholder">Metni madde işaretleriyle yapılandırmak için butona tıklayın.</p>
+                    
+                    <div id="level2-result" class="hidden w-full">
+                        <div class="absolute top-0 right-0 bg-emerald-200 text-emerald-800 text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg">Yapılandırılmış Metin</div>
+                        <ul class="text-slate-700 mt-2 text-sm space-y-2 list-disc pl-5">
+                            <li><strong>Adım 1:</strong> İhtiyaç belirlenmesi</li>
+                            <li><strong>Adım 2:</strong> Piyasa araştırması yapılması</li>
+                            <li><strong>Adım 3:</strong> En az 3 firmadan teklif alınması</li>
+                            <li><strong>Adım 4:</strong> Tekliflerin değerlendirilmesi ve sipariş</li>
+                            <li><strong>Adım 5:</strong> Teslimat ve ödeme</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-center" id="level2-actions">
+                <button onclick="formatText()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium py-3 px-8 rounded-lg transition-colors shadow-md flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                    Metni Madde İşaretlerine Çevir
+                </button>
+            </div>
+
+            <div class="mt-6 flex justify-between items-center hidden" id="level2-success">
+                <div class="text-emerald-600 font-bold flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Mükemmel! Yapısal format modelin veriyi %80 daha doğru işlemesini sağlar.
+                </div>
+                <button onclick="nextLevel(3)" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-sm">Sonraki Modül &rarr;</button>
+            </div>
+        </section>
+
+        <!-- LEVEL 3: Constraints -->
+        <section id="level-3" class="level-section fade-in bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 hidden">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full text-sm">Modül 3</span>
+                <h2 class="text-lg font-bold text-slate-800">Hedefi ve Çıktıyı Daraltma</h2>
+            </div>
+            <p class="text-slate-600 mb-6">Açık uçlu promptlar, destan gibi cevaplar almanıza neden olur. Ana talebimiz: <strong>"Denetim bulgularını analiz et."</strong> Bu prompta doğru kısıtlamaları ekleyerek çıktıyı kontrol altına alın.</p>
+            
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-5 mb-6">
+                <h3 class="font-semibold text-slate-700 mb-3">Çıktı Kısıtlarını Seçin (En az 2 doğru kısıt seçilmeli):</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center gap-3 p-3 rounded-md border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition">
+                        <input type="checkbox" class="level3-check w-5 h-5 text-blue-600 rounded border-slate-300" data-type="good" value="Sadece yüksek riskli olan ilk 5 bulguyu listele.">
+                        <span class="text-slate-700">Sadece yüksek riskli olan ilk 5 bulguyu listele.</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-md border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition">
+                        <input type="checkbox" class="level3-check w-5 h-5 text-rose-600 rounded border-slate-300" data-type="bad" value="Benim için çok detaylı ve uzun bir hikaye yaz.">
+                        <span class="text-slate-700">Benim için çok detaylı ve uzun bir makale gibi yaz. (Yanlış Kısıt)</span>
+                    </label>
+                    <label class="flex items-center gap-3 p-3 rounded-md border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition">
+                        <input type="checkbox" class="level3-check w-5 h-5 text-blue-600 rounded border-slate-300" data-type="good" value="Çıktıyı 'Risk', 'Etki' ve 'Öneri' başlıklarına sahip bir tablo formatında ver.">
+                        <span class="text-slate-700">Çıktıyı 'Risk', 'Etki' ve 'Öneri' başlıklarına sahip bir tablo formatında ver.</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button onclick="applyConstraints()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 px-6 rounded-lg transition-colors">Promptu Güncelle</button>
+            </div>
+
+            <div class="mt-6 hidden bg-emerald-50 border border-emerald-200 p-5 rounded-lg" id="level3-result-box">
+                <p class="text-xs text-emerald-600 font-bold uppercase tracking-wider mb-2">Optimize Edilmiş Final Prompt</p>
+                <p class="text-slate-800 font-medium" id="level3-final-prompt"></p>
+                
+                <div class="mt-4 flex justify-between items-center pt-4 border-t border-emerald-200">
+                    <span class="text-emerald-700 font-semibold">Tebrikler! Halüsinasyon riski azaltıldı.</span>
+                    <button onclick="nextLevel(4)" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors shadow-sm">Sonraki Modül &rarr;</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- LEVEL 4: Context Isolation -->
+        <section id="level-4" class="level-section fade-in bg-white p-6 rounded-xl shadow-sm border border-slate-200 hidden">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full text-sm">Modül 4</span>
+                <h2 class="text-lg font-bold text-slate-800">Bağlam İzolasyonu (Yeni Sohbet)</h2>
+            </div>
+            <p class="text-slate-600 mb-6">Yapay zeka modelleri sohbet geçmişindeki her şeyi bağlama katar. Eğer konu tamamen değişiyorsa, mevcut sohbete devam etmek modelin kafasını karıştırır.</p>
+            
+            <div class="flex flex-col md:flex-row gap-6 bg-slate-100 p-4 rounded-xl">
+                
+                <!-- Mock Chat UI -->
+                <div class="w-full md:w-1/2 bg-white border border-slate-200 rounded-lg flex flex-col h-80 shadow-inner overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 p-3 text-sm font-semibold text-slate-700 flex justify-between items-center">
+                        <span>Sohbet Geçmişi: Excel Makroları</span>
+                        <button class="text-xs bg-slate-200 hover:bg-slate-300 px-2 py-1 rounded transition" onclick="triggerNewChat()">+ Yeni Sohbet</button>
+                    </div>
+                    <div class="p-4 flex-grow overflow-y-auto chat-scroll flex flex-col gap-4 text-sm" id="chat-history">
+                        <!-- Chat Bubble User -->
+                        <div class="self-end bg-blue-100 text-blue-900 p-3 rounded-lg rounded-tr-none max-w-[80%]">
+                            Excel'de VLOOKUP (Düşeyara) formülü nasıl yazılır?
+                        </div>
+                        <!-- Chat Bubble AI -->
+                        <div class="self-start bg-slate-100 text-slate-800 p-3 rounded-lg rounded-tl-none max-w-[80%]">
+                            Düşeyara formülü =VLOOKUP(aranan_değer, tablo_dizisi, indis_sayısı, 0) şeklinde yazılır. Size bir makro örneği de verebilirim.
+                        </div>
+                        <!-- Chat Bubble User -->
+                        <div class="self-end bg-blue-100 text-blue-900 p-3 rounded-lg rounded-tr-none max-w-[80%]">
+                            Hücreleri otomatik boyayan VBA makro kodu yazar mısın?
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Area -->
+                <div class="w-full md:w-1/2 flex flex-col justify-center">
+                    <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm relative">
+                        <div class="absolute -top-3 left-4 bg-orange-100 text-orange-800 text-xs font-bold px-2 py-1 rounded border border-orange-200">Yeni İsteğiniz:</div>
+                        <p class="text-slate-800 font-medium mt-2">"Bana 2026 yılı Stratejik Planlama ve Bütçe Denetimi Raporu taslağı oluştur."</p>
+                        
+                        <div class="mt-6 flex flex-col gap-3">
+                            <button onclick="sendToCurrentChat()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-4 rounded-lg transition border border-slate-300 w-full text-left flex items-center justify-between">
+                                <span>Mevcut Sohbete Gönder</span>
+                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            </button>
+                            <button onclick="triggerNewChat()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition shadow-sm w-full text-left flex items-center justify-between">
+                                <span>Yeni Sohbet Açarak Gönder</span>
+                                <svg class="w-5 h-5 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 hidden bg-emerald-50 border border-emerald-200 p-5 rounded-lg flex-col items-center text-center fade-in" id="level4-success">
+                <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Eğitim Tamamlandı!</h3>
+                <p class="text-slate-600">Optimizasyon metodolojilerini başarıyla uyguladınız. Yapay zekayı bir arama motoru değil, bir asistan gibi yönetmeye hazırsınız.</p>
+                <button onclick="location.reload()" class="mt-6 bg-slate-800 hover:bg-slate-900 text-white py-2 px-6 rounded-lg">Simülasyonu Sıfırla</button>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // State Management
+        let currentState = {
+            level: 1,
+            tokenCost: 95,
+            aiFocus: 20
+        };
+
+        // --- UI & Metrics Helper ---
+        function updateMetrics(newCost, newFocus) {
+            currentState.tokenCost = newCost;
+            currentState.aiFocus = newFocus;
+            
+            document.getElementById('token-bar').style.width = newCost + '%';
+            document.getElementById('token-val').innerText = newCost + '%';
+            
+            // Color shift for token bar (Red to Green)
+            if(newCost > 60) document.getElementById('token-bar').className = "metric-bar h-2 rounded-full bg-rose-500";
+            else if(newCost > 30) document.getElementById('token-bar').className = "metric-bar h-2 rounded-full bg-orange-400";
+            else document.getElementById('token-bar').className = "metric-bar h-2 rounded-full bg-emerald-500";
+
+            document.getElementById('focus-bar').style.width = newFocus + '%';
+            document.getElementById('focus-val').innerText = newFocus + '%';
+            
+            // Color shift for focus bar (Blue to Deep Blue/Purple)
+            if(newFocus < 50) document.getElementById('focus-bar').className = "metric-bar h-2 rounded-full bg-blue-400";
+            else if(newFocus < 80) document.getElementById('focus-bar').className = "metric-bar h-2 rounded-full bg-blue-600";
+            else document.getElementById('focus-bar').className = "metric-bar h-2 rounded-full bg-indigo-600";
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-emerald-500' : (type === 'error' ? 'bg-rose-500' : 'bg-blue-500');
+            
+            toast.className = `${bgColor} text-white px-4 py-3 rounded shadow-lg flex items-center gap-2 fade-in`;
+            toast.innerHTML = `
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${type === 'success' 
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>' 
+                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'}
+                </svg>
+                <span class="font-medium text-sm">${message}</span>
+            `;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function nextLevel(levelNum) {
+            document.querySelectorAll('.level-section').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById('level-' + levelNum);
+            target.classList.remove('hidden');
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // --- LEVEL 1: Pruning Logic ---
+        const rawWords = [
+            { text: "Merhaba,", type: "bad" },
+            { text: "bana", type: "bad" },
+            { text: "iç", type: "good" },
+            { text: "denetim", type: "good" },
+            { text: "ve", type: "good" },
+            { text: "strateji", type: "good" },
+            { text: "raporu", type: "good" },
+            { text: "hazırlamada", type: "good" },
+            { text: "yardım", type: "bad" },
+            { text: "eder", type: "bad" },
+            { text: "misin", type: "bad" },
+            { text: "lütfen", type: "bad" },
+            { text: "teşekkürler", type: "bad" }
+        ];
+
+        let badWordsCount = rawWords.filter(w => w.type === 'bad').length;
+        let clickedBadWords = 0;
+
+        function renderLevel1() {
+            const container = document.getElementById('level1-words');
+            container.innerHTML = '';
+            
+            rawWords.forEach((wordObj, index) => {
+                const span = document.createElement('span');
+                span.innerText = wordObj.text + " ";
+                span.className = `word-chip inline-block px-1 py-0.5 m-0.5 rounded border border-transparent ${wordObj.type}`;
+                
+                span.onclick = () => handleWordClick(span, wordObj.type);
+                container.appendChild(span);
+            });
+        }
+
+        function handleWordClick(element, type) {
+            if (element.classList.contains('deleted')) return;
+
+            if (type === 'bad') {
+                element.classList.add('deleted');
+                clickedBadWords++;
+                if(clickedBadWords === badWordsCount) {
+                    document.getElementById('level1-success').classList.remove('hidden');
+                    updateMetrics(60, 45);
+                    showToast('Gereksiz kelimeler temizlendi!', 'success');
+                }
+            } else {
+                element.classList.add('border-rose-500', 'bg-rose-100', 'text-rose-700');
+                showToast('Bu kelime asıl görev için gerekli, silmeyin.', 'error');
+                setTimeout(() => {
+                    element.classList.remove('border-rose-500', 'bg-rose-100', 'text-rose-700');
+                }, 1000);
+            }
+        }
+
+        // --- LEVEL 2: Formatting Logic ---
+        function formatText() {
+            const badBox = document.getElementById('level2-bad-box');
+            const placeholder = document.getElementById('level2-placeholder');
+            const resultBox = document.getElementById('level2-result');
+            const goodBoxContainer = document.getElementById('level2-good-box');
+            const actionBtn = document.getElementById('level2-actions');
+
+            badBox.classList.add('opacity-50');
+            placeholder.classList.add('hidden');
+            resultBox.classList.remove('hidden');
+            
+            goodBoxContainer.classList.remove('border-dashed', 'bg-slate-50');
+            goodBoxContainer.classList.add('border-emerald-200', 'bg-emerald-50');
+            
+            actionBtn.classList.add('hidden');
+            document.getElementById('level2-success').classList.remove('hidden');
+            
+            updateMetrics(35, 70);
+            showToast('Metin yapılandırıldı!', 'success');
+        }
+
+        // --- LEVEL 3: Constraints Logic ---
+        function applyConstraints() {
+            const checkboxes = document.querySelectorAll('.level3-check');
+            let goodSelected = 0;
+            let badSelected = false;
+            let selectedTexts = [];
+
+            checkboxes.forEach(cb => {
+                if(cb.checked) {
+                    if(cb.dataset.type === 'bad') badSelected = true;
+                    if(cb.dataset.type === 'good') {
+                        goodSelected++;
+                        selectedTexts.push(cb.value);
+                    }
+                }
+            });
+
+            if(badSelected) {
+                showToast('Hata: "Hikaye gibi uzun yaz" kısıtı gereksiz token israfına yol açar. Onu kaldırın.', 'error');
+                return;
+            }
+
+            if(goodSelected < 2) {
+                showToast('Lütfen listelenen uygun kısıtların tamamını seçin.', 'error');
+                return;
+            }
+
+            // Success
+            const basePrompt = "Denetim bulgularını analiz et. ";
+            document.getElementById('level3-final-prompt').innerText = basePrompt + selectedTexts.join(" ");
+            
+            document.getElementById('level3-result-box').classList.remove('hidden');
+            document.getElementById('level3-result-box').classList.add('flex', 'flex-col');
+            
+            updateMetrics(15, 90);
+            showToast('Kısıtlar başarıyla eklendi.', 'success');
+        }
+
+        // --- LEVEL 4: Context Isolation Logic ---
+        function sendToCurrentChat() {
+            showToast('Modelin Kafası Karıştı! Excel makroları ile Bütçe raporunu birleştirmeye çalışıyor.', 'error');
+            const chatHistory = document.getElementById('chat-history');
+            
+            // Simulate AI hallucination
+            const badAIResponse = document.createElement('div');
+            badAIResponse.className = "self-start bg-rose-100 text-rose-800 p-3 rounded-lg rounded-tl-none max-w-[80%] fade-in mt-2 border border-rose-200";
+            badAIResponse.innerHTML = "<strong>Hata:</strong> Bütçe denetimini VLOOKUP ile yapmaya çalışıyorum... VBA kodunda '#DIV/0!' hatası var. Stratejik planı hangi hücreye yazmalıyım?";
+            chatHistory.appendChild(badAIResponse);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function triggerNewChat() {
+            const chatHistory = document.getElementById('chat-history');
+            chatHistory.innerHTML = `
+                <div class="flex items-center justify-center h-full text-slate-400 flex-col gap-2 fade-in">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    <span>Yeni Bağlam Temiz Bir Sayfada Başladı</span>
+                </div>
+            `;
+            
+            document.getElementById('level4-success').classList.remove('hidden');
+            document.getElementById('level4-success').classList.add('flex');
+            
+            // Final Metrics
+            updateMetrics(5, 100);
+            showToast('Tebrikler! Bağlam izole edildi.', 'success');
+        }
+
+        // Init
+        window.onload = () => {
+            renderLevel1();
+        };
+    </script>
+</body>
+</html>

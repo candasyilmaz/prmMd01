@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prompt Atölyesi: Etkinlik</title>
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#14231c;--mute:#5b6b63;--line:#d5ded9;--accent:#0f6b52;--accent-ink:#fff;--ok:#0f7a4a;--okbg:#dff3e8;--bad:#b3261e;--badbg:#fbe4e1;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1713;--card:#18231d;--ink:#e8f0ec;--mute:#9db0a6;--line:#2c3b33;--accent:#4cc79c;--accent-ink:#06231a;--ok:#6fe0a8;--okbg:#14402c;--bad:#ff8f86;--badbg:#4a1d19;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1713;--card:#18231d;--ink:#e8f0ec;--mute:#9db0a6;--line:#2c3b33;--accent:#4cc79c;--accent-ink:#06231a;--ok:#6fe0a8;--okbg:#14402c;--bad:#ff8f86;--badbg:#4a1d19;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Source Serif 4",Georgia,"Times New Roman",serif;line-height:1.6;font-size:18px}
+main{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:1.9rem;line-height:1.2;margin:8px 0 6px}
+h2{font-size:1.3rem;line-height:1.35;margin:0 0 14px}
+p{margin:0 0 12px}
+.mute{color:var(--mute);font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:18px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:14px 0 4px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;font:inherit;color:inherit;background:transparent;border:1.5px solid var(--line);border-radius:8px;padding:12px 14px;margin:8px 0;cursor:pointer}
+.opt:hover{border-color:var(--accent)}
+.opt:focus-visible,.btn:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.opt.ok{border-color:var(--ok);background:var(--okbg)}
+.opt.bad{border-color:var(--bad);background:var(--badbg)}
+.opt:disabled{cursor:default}
+.btn{font:inherit;font-weight:600;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:11px 20px;cursor:pointer;margin-top:10px}
+.btn.alt{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.fb{margin-top:12px;padding:12px 14px;border-radius:8px;font-size:.98rem}
+.fb.ok{background:var(--okbg)}.fb.bad{background:var(--badbg)}
+blockquote{margin:0 0 14px;padding:10px 14px;border-left:4px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);border-radius:4px}
+textarea{width:100%;min-height:130px;font:inherit;color:inherit;background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:10px}
+.chk{display:flex;gap:10px;align-items:center;margin:6px 0}
+.chk input{width:20px;height:20px;accent-color:var(--accent)}
+.score{font-size:2.6rem;font-weight:700;margin:4px 0}
+.hidden{display:none}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;font:inherit;font-size:.95rem}
+</style>
+</head>
+<body>
+<main>
+<h1>Prompt Atölyesi</h1>
+<p class="mute">Önce 6 soruluk bir test, ardından kendi prompt’unuzu yazacağınız kısa bir uygulama.</p>
+<div class="bar" aria-hidden="true"><i id="prog"></i></div>
+<p class="mute" id="step"></p>
+
+<section id="quiz" class="card"></section>
+
+<section id="lab" class="card hidden">
+  <h2>Uygulama: Kendi prompt’unu yaz</h2>
+  <p>Gerçek bir iş görevi seçin (e-posta, özet, duyuru…). Aşağıya prompt’unuzu yazın, sonra içerdiği bileşenleri işaretleyin.</p>
+  <textarea id="mine" placeholder="Örn: Sen deneyimli bir İK uzmanısın. ..." aria-label="Prompt’unuz"></textarea>
+  <div id="checks" style="margin-top:10px"></div>
+  <div class="row"><button class="btn" id="evalBtn">Puanla</button><button class="btn alt" id="tplBtn">Şablonu göster</button></div>
+  <div id="labFb"></div>
+  <pre id="tpl" class="hidden">Rol: Sen [uzmanlık]’sın.
+Görev: [ne yapılacak]
+Bağlam: [durum, arka plan, amaç]
+Hedef kitle: [kim okuyacak]
+Format: [uzunluk, yapı, biçim]
+Ton: [üslup]
+Kısıtlar: [yapma / dikkat et]</pre>
+</section>
+
+<section id="end" class="card hidden"></section>
+</main>
+<script>
+var Q=[
+{t:"single",q:"Hangi prompt daha güçlü?",ctx:null,o:["“Toplantı e-postası yaz.”","“Ekibe yarın 14:00’teki proje toplantısını hatırlatan, resmi tonda, 80 kelimeyi geçmeyen bir e-posta yaz.”","“Çok güzel ve etkileyici bir toplantı e-postası yaz.”"],a:[1],e:"İkinci prompt hedef kitleyi, bağlamı, tonu ve uzunluğu söylüyor. Yapay zekanın tahmin etmesi gereken şey kalmıyor."},
+{t:"multi",q:"Aşağıdaki prompt’ta hangileri EKSİK? (Birden fazla seçin)",ctx:"“Sen bir İK uzmanısın. Aday reddi e-postası yaz.”",o:["Bağlam (aday kim, hangi aşamada elendi)","Rol","Format ve uzunluk","Ton (samimi mi resmi mi)"],a:[0,2,3],e:"Rol var. Bağlam, format ve ton eksik; bu yüzden çıktı genel geçer olur."},
+{t:"single",q:"Yapay zeka size çok kesin görünen bir istatistik verdi. Ne yaparsınız?",ctx:null,o:["Kesin yazdığı için olduğu gibi sunuma koyarım.","Güvenilir bir kaynaktan doğrularım; modeller kendinden emin şekilde yanılabilir (halüsinasyon).","Aynı soruyu tekrar sorarım, aynı cevabı verirse doğrudur."],a:[1],e:"Aynı yanlış cevap tekrar edilebilir. Sayı, tarih, hukuk ve sağlık bilgileri mutlaka kaynaktan doğrulanmalı."},
+{t:"single",q:"Hangisini yapay zekaya yazmak güvenlidir?",ctx:null,o:["Müşteri listesi: ad, telefon, TC kimlik no","Şirketin yayınlanmamış finansal tabloları","Kişisel bilgi içermeyen, genel bir e-posta taslağı isteği"],a:[2],e:"Kişisel veri ve ticari sırlar prompt’a yazılmaz. Şirketinizin yapay zeka politikasına da uyun."},
+{t:"single",q:"Yapay zekanın cevabı çok uzun geldi. En iyi hamle hangisi?",ctx:null,o:["Sohbeti bırakıp baştan, tamamen yeni bir prompt yazarım.","“Bunu 100 kelimeye indir ve madde işaretleriyle ver” diye devam ederim.","Uzun cevabı kendim kısaltırım."],a:[1],e:"Yinelemeli iyileştirme: küçük, net düzeltmelerle çıktıyı şekillendirmek genelde en hızlı yoldur."},
+{t:"single",q:"Ne istediğinizi tam bilmiyorsunuz: haftalık menü planı yapmak istiyorsunuz. Hangi prompt iyi bir başlangıçtır?",ctx:null,o:["“Menü planı ver.”","“Haftalık menü planı hazırlamak istiyorum. Doğru plan için bana gerekli soruları sor, cevaplarımdan sonra planı oluştur.”","“En iyi menü planını yaz, hata yapma.”"],a:[1],e:"Ters sorgu tekniği: yapay zeka eksik bilgiyi sizden ister, sonuç kişiselleşir."}
+];
+var C=["Rol (kim olsun?)","Görev (ne yapacak?)","Bağlam (durum, amaç)","Hedef kitle (kim okuyacak?)","Format (uzunluk, yapı)","Ton (üslup)","Kısıt (neyi yapmasın?)"];
+var i=0,score=0,sel=[],done=false;
+var $=function(id){return document.getElementById(id)};
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function setProg(n,total,label){$("prog").style.width=(n/total*100)+"%";$("step").textContent=label}
+function render(){
+  var q=Q[i];sel=[];done=false;
+  setProg(i,Q.length+1,"Soru "+(i+1)+" / "+Q.length+" · Puan: "+score);
+  var h="<h2>"+esc(q.q)+"</h2>"+(q.ctx?"<blockquote>"+esc(q.ctx)+"</blockquote>":"");
+  q.o.forEach(function(o,k){h+='<button class="opt" data-k="'+k+'" aria-pressed="false">'+esc(o)+"</button>"});
+  h+='<div id="fb"></div><button class="btn" id="chk" disabled>Cevabı kontrol et</button>';
+  $("quiz").innerHTML=h;
+  document.querySelectorAll(".opt").forEach(function(b){b.onclick=function(){
+    if(done)return;var k=+b.dataset.k;
+    if(q.t==="single"){sel=[k];document.querySelectorAll(".opt").forEach(function(x){x.setAttribute("aria-pressed","false")});b.setAttribute("aria-pressed","true")}
+    else{var p=sel.indexOf(k);if(p>-1){sel.splice(p,1);b.setAttribute("aria-pressed","false")}else{sel.push(k);b.setAttribute("aria-pressed","true")}}
+    $("chk").disabled=!sel.length}});
+  $("chk").onclick=check;
+}
+function check(){
+  var q=Q[i];done=true;
+  var ok=sel.slice().sort().join()===q.a.slice().sort().join();
+  if(ok)score++;
+  document.querySelectorAll(".opt").forEach(function(b){var k=+b.dataset.k;b.disabled=true;
+    if(q.a.indexOf(k)>-1)b.classList.add("ok");else if(sel.indexOf(k)>-1)b.classList.add("bad")});
+  $("fb").innerHTML='<div class="fb '+(ok?"ok":"bad")+'"><strong>'+(ok?"Doğru.":"Tam değil.")+"</strong> "+esc(q.e)+"</div>";
+  var b=$("chk");b.disabled=false;b.textContent=i<Q.length-1?"Sonraki soru":"Uygulamaya geç";
+  b.onclick=function(){i++;if(i<Q.length)render();else startLab()};
+  setProg(i+1,Q.length+1,"Soru "+(i+1)+" / "+Q.length+" · Puan: "+score);
+}
+function startLab(){
+  $("quiz").classList.add("hidden");$("lab").classList.remove("hidden");
+  setProg(Q.length,Q.length+1,"Son adım · Test puanı: "+score+" / "+Q.length);
+  $("checks").innerHTML=C.map(function(c,k){return '<label class="chk"><input type="checkbox" data-c="'+k+'"> '+esc(c)+"</label>"}).join("");
+  $("evalBtn").onclick=function(){
+    var txt=$("mine").value.trim();
+    if(txt.length<15){$("labFb").innerHTML='<div class="fb bad">Önce bir prompt yazın (en az bir cümle).</div>';return}
+    var n=document.querySelectorAll("#checks input:checked").length;
+    var msg=n>=6?"Çok iyi: neredeyse tüm bileşenler var.":n>=4?"İyi: birkaç bileşen daha ekleyerek güçlendirebilirsiniz.":"Geliştirilebilir: şablondaki eksik bileşenleri ekleyip tekrar deneyin.";
+    $("labFb").innerHTML='<div class="fb '+(n>=4?"ok":"bad")+'"><strong>'+n+" / "+C.length+" bileşen.</strong> "+msg+"</div>";
+    $("end").classList.remove("hidden");finish(n)};
+  $("tplBtn").onclick=function(){$("tpl").classList.toggle("hidden")};
+}
+function finish(n){
+  var lvl=score>=5?"Prompt ustası":score>=3?"Yolun yarısındasınız":"Başlangıç seviyesi";
+  setProg(Q.length+1,Q.length+1,"Tamamlandı");
+  $("end").innerHTML='<h2>Sonuç</h2><div class="score">'+score+" / "+Q.length+'</div><p><strong>'+lvl+'.</strong> Uygulamada '+n+" / "+C.length+' bileşen kullandınız.</p><p class="mute">Ana fikir: yapay zekadan iyi sonuç almak, ona iyi brifing vermekle aynıdır.</p><button class="btn alt" onclick="location.reload()">Baştan başla</button>';
+  $("end").scrollIntoView({behavior:"smooth"});
+}
+render();
+</script>
+</body>
+</html>

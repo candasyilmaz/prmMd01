@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yapay Zeka Okuma Simülasyonu: Tokenizasyon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        /* Özel Animasyonlar */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Puzzle-like bağlantı efekti (Adım 3 ve 4 için) */
+        .token-joined {
+            border-radius: 0;
+            border-right: 1px solid rgba(255,255,255,0.2);
+        }
+        .token-joined:first-child {
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+        }
+        .token-joined:last-child {
+            border-top-right-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            border-right: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+
+    <!-- Ana Konteyner -->
+    <div class="max-w-5xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        
+        <!-- Üst Başlık (Header) -->
+        <header class="bg-slate-900 text-white p-6 md:p-8 text-center">
+            <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Yapay Zeka Okuma Simülasyonu: Tokenizasyon</h1>
+            <p class="text-slate-400 mt-2 text-sm md:text-base">Bir metnin yapay zekanın anlayacağı parçalara ve sayılara dönüşme adımları</p>
+        </header>
+
+        <div class="p-6 md:p-10">
+            
+            <!-- Giriş Alanı -->
+            <div class="mb-10">
+                <label class="block text-sm font-semibold text-slate-500 mb-2 uppercase tracking-wider">İncelenecek Metin</label>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="textInput" value="Bir denetim süreci başlattık!" 
+                        class="flex-1 text-lg p-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm"
+                        placeholder="Cümle giriniz...">
+                    <button id="resetBtn" class="px-6 py-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-xl transition-colors shadow-sm whitespace-nowrap">
+                        Varsayılana Dön
+                    </button>
+                </div>
+            </div>
+
+            <!-- İlerleme Çubuğu (Stepper) -->
+            <div class="relative flex justify-between items-center mb-12 max-w-3xl mx-auto px-4">
+                <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 -z-10 rounded-full"></div>
+                <div id="progressBar" class="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-blue-600 -z-10 transition-all duration-500 rounded-full" style="width: 0%;"></div>
+                
+                <!-- Adım Butonları -->
+                <button class="step-btn w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 bg-blue-600 text-white border-white shadow-md transition-all ring-4 ring-blue-100" data-step="1">1</button>
+                <button class="step-btn w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 bg-slate-100 text-slate-400 border-white shadow-sm transition-all" data-step="2">2</button>
+                <button class="step-btn w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 bg-slate-100 text-slate-400 border-white shadow-sm transition-all" data-step="3">3</button>
+                <button class="step-btn w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 bg-slate-100 text-slate-400 border-white shadow-sm transition-all" data-step="4">4</button>
+            </div>
+
+            <!-- Bilgi Kutusu -->
+            <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-8 flex items-start gap-4 shadow-sm">
+                <div class="bg-blue-600 text-white p-2 rounded-lg mt-1 shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                </div>
+                <div>
+                    <h2 id="stepTitle" class="text-xl font-bold text-blue-900 mb-1">1. Kaba Parçalara Bölme</h2>
+                    <p id="stepDesc" class="text-blue-800 opacity-90 text-sm md:text-base">Metnin en baştaki kelime ve doğal sınırlarından bölünme aşaması.</p>
+                </div>
+            </div>
+
+            <!-- Görselleştirme Alanı -->
+            <div id="visualizationArea" class="min-h-[250px] flex items-center justify-center p-8 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl mb-8 overflow-x-auto">
+                <!-- İçerik JS ile buraya yüklenecek -->
+            </div>
+
+            <!-- Alt Kontrol Paneli -->
+            <div class="flex justify-between items-center border-t border-slate-200 pt-6">
+                <button id="prevBtn" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all bg-white text-slate-500 border border-slate-200 opacity-50 cursor-not-allowed" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    Önceki
+                </button>
+                
+                <!-- Renk Lejantı -->
+                <div id="legend" class="hidden md:flex gap-5 text-sm font-medium text-slate-600">
+                   <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 bg-blue-600 rounded-sm shadow-sm inline-block"></span> Kök</div>
+                   <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 bg-orange-500 rounded-sm shadow-sm inline-block"></span> Ek / Parça</div>
+                   <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 bg-slate-500 rounded-sm shadow-sm inline-block"></span> Noktalama</div>
+                </div>
+
+                <button id="nextBtn" class="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg">
+                    Sonraki
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Uygulama Mantığı (JavaScript) -->
+    <script>
+        // Durum (State) Yönetimi
+        let currentStep = 1;
+        let inputText = "Bir denetim süreci başlattık!";
+        let tokenData = [];
+
+        // Adım Bilgileri
+        const stepsInfo = [
+            {
+                title: "1. Kaba Parçalara Bölme",
+                desc: "Metnin en baştaki kelime ve doğal sınırlarından bölünme aşaması."
+            },
+            {
+                title: "2. Kaba Parçaları Ayırma",
+                desc: "Bölünen parçaların kök, ek ve noktalama düzeyinde detaylı ayrıştırılması."
+            },
+            {
+                title: "3. Birleşmiş Metin",
+                desc: "Ayrılan tüm bu küçük parçaların (token'ların) yapay zekanın işlemeye hazır olduğu, yan yana bütünleşik bir dizi haline getirilmesi."
+            },
+            {
+                title: "4. Numaralandırma",
+                desc: "Bütünleşen her bir parçaya yapay zeka tarafından sayısal birer kimlik (ID) atanması."
+            }
+        ];
+
+        // Sabit Senaryo (Eğitim doğruluğu için özel ayrım)
+        const defaultTokens = [
+            { word: "Bir", parts: [{ text: "Bir", type: "root", id: 102 }] },
+            { word: "denetim", parts: [{ text: "denet", type: "root", id: 1248 }, { text: "im", type: "suffix", id: 84 }] },
+            { word: "süreci", parts: [{ text: "süreci", type: "root", id: 4501 }] }, // İsteğe göre "süreci" birleşik bırakıldı
+            { word: "başlattık!", parts: [{ text: "başlat", type: "root", id: 9205 }, { text: "tık", type: "suffix", id: 711 }, { text: "!", type: "punctuation", id: 11 }] }
+        ];
+
+        // Dinamik Metin Parçalayıcı (Kullanıcı kendi metnini girerse)
+        function tokenizeText(text) {
+            if (text.trim() === "Bir denetim süreci başlattık!") return defaultTokens;
+            
+            const words = text.split(/\s+/).filter(w => w.length > 0);
+            return words.map((word) => {
+                const match = word.match(/^(.*?)([\.,!?]*)$/);
+                const core = match[1] || "";
+                const punc = match[2] || "";
+                let parts = [];
+                
+                // Basit ve rastgele kök/ek ayrımı simülasyonu
+                if (core.length > 5) {
+                    const mid = Math.floor(core.length / 2) + 1;
+                    parts.push({ text: core.slice(0, mid), type: "root", id: Math.floor(Math.random() * 9000) + 1000 });
+                    parts.push({ text: core.slice(mid), type: "suffix", id: Math.floor(Math.random() * 900) + 100 });
+                } else if (core.length > 0) {
+                    parts.push({ text: core, type: "root", id: Math.floor(Math.random() * 9000) + 1000 });
+                }
+                
+                if (punc) {
+                    parts.push({ text: punc, type: "punctuation", id: Math.floor(Math.random() * 90) + 10 });
+                }
+                return { word, parts };
+            });
+        }
+
+        // HTML Elementlerini Seçme
+        const inputEl = document.getElementById('textInput');
+        const resetBtn = document.getElementById('resetBtn');
+        const visArea = document.getElementById('visualizationArea');
+        const stepTitle = document.getElementById('stepTitle');
+        const stepDesc = document.getElementById('stepDesc');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const stepBtns = document.querySelectorAll('.step-btn');
+        const progressBar = document.getElementById('progressBar');
+        const legend = document.getElementById('legend');
+
+        // Güvenli HTML karakter değişimi
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag]));
+        }
+
+        // Görselleştirme Çizimi (Render)
+        function renderStep() {
+            // Bilgi Kutusu Güncelleme
+            stepTitle.textContent = stepsInfo[currentStep - 1].title;
+            stepDesc.textContent = stepsInfo[currentStep - 1].desc;
+
+            // İlerleme ve Buton Stillerini Güncelleme
+            progressBar.style.width = `${((currentStep - 1) / 3) * 100}%`;
+            
+            stepBtns.forEach((btn, index) => {
+                const stepNum = index + 1;
+                if (stepNum === currentStep) {
+                    btn.className = "step-btn w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 bg-blue-600 text-white border-white shadow-md transition-all ring-4 ring-blue-100 scale-110";
+                } else if (stepNum < currentStep) {
+                    btn.className = "step-btn w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 bg-blue-500 text-white border-white shadow-sm transition-all cursor-pointer hover:bg-blue-600";
+                } else {
+                    btn.className = "step-btn w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg border-4 bg-slate-100 text-slate-400 border-white shadow-sm transition-all cursor-pointer hover:border-blue-200";
+                }
+            });
+
+            // Yön Butonları Durumu
+            prevBtn.disabled = currentStep === 1;
+            if (currentStep === 1) {
+                prevBtn.classList.replace('bg-white', 'bg-slate-100');
+                prevBtn.classList.replace('text-slate-700', 'text-slate-400');
+                prevBtn.classList.replace('hover:bg-slate-50', 'cursor-not-allowed');
+                prevBtn.classList.add('opacity-50');
+            } else {
+                prevBtn.classList.replace('bg-slate-100', 'bg-white');
+                prevBtn.classList.replace('text-slate-400', 'text-slate-700');
+                prevBtn.classList.replace('cursor-not-allowed', 'hover:bg-slate-50');
+                prevBtn.classList.remove('opacity-50');
+            }
+
+            nextBtn.disabled = currentStep === 4;
+            if (currentStep === 4) {
+                nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                nextBtn.classList.remove('hover:bg-blue-700', 'hover:shadow-lg');
+            } else {
+                nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                nextBtn.classList.add('hover:bg-blue-700', 'hover:shadow-lg');
+            }
+
+            // Lejant Görünürlüğü
+            legend.style.display = currentStep > 1 ? 'flex' : 'none';
+
+            // İçerik Oluşturma
+            let html = '';
+            
+            if (currentStep === 1) {
+                // Adım 1: Bütün Kelimeler
+                html = `<div class="flex flex-wrap justify-center gap-4 fade-in">`;
+                tokenData.forEach(t => {
+                    html += `<div class="px-5 py-3 bg-slate-700 text-white rounded-lg shadow-md text-xl font-medium border border-slate-600">${escapeHTML(t.word)}</div>`;
+                });
+                html += `</div>`;
+            } 
+            else if (currentStep === 2) {
+                // Adım 2: Kelimeler kendi içinde parçalı
+                html = `<div class="flex flex-wrap justify-center gap-8 fade-in">`;
+                tokenData.forEach(t => {
+                    html += `<div class="flex gap-1.5 p-3 bg-white rounded-xl border border-slate-200 shadow-sm">`;
+                    t.parts.forEach(p => {
+                        let bgColor = p.type === 'root' ? 'bg-blue-600' : p.type === 'suffix' ? 'bg-orange-500' : 'bg-slate-500';
+                        html += `<div class="px-4 py-2 text-white rounded shadow-sm text-lg font-medium transition-transform hover:scale-105 ${bgColor}">${escapeHTML(p.text)}</div>`;
+                    });
+                    html += `</div>`;
+                });
+                html += `</div>`;
+            }
+            else if (currentStep === 3 || currentStep === 4) {
+                // Adım 3 & 4: Yan Yana Bütünleşik (Token Joined)
+                let flatTokens = tokenData.flatMap(t => t.parts);
+                html = `<div class="flex flex-wrap justify-center gap-y-6 fade-in px-4 py-2">`;
+                
+                flatTokens.forEach((p, i) => {
+                    let bgColor = p.type === 'root' ? 'bg-blue-600' : p.type === 'suffix' ? 'bg-orange-500' : 'bg-slate-500';
+                    
+                    html += `<div class="flex flex-col items-center">`;
+                    html += `<div class="px-3 md:px-4 py-2 md:py-3 text-white text-lg font-medium token-joined ${bgColor}">${escapeHTML(p.text)}</div>`;
+                    
+                    if (currentStep === 4) {
+                        html += `
+                        <div class="flex flex-col items-center mt-2 slide-up text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-1"><path d="M12 12h.01"/><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M22 13a18.15 18.15 0 0 1-20 0"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+                            <span class="text-xs md:text-sm font-mono font-bold bg-slate-200 px-2 py-0.5 rounded shadow-inner">#${p.id}</span>
+                        </div>`;
+                    }
+                    html += `</div>`;
+                });
+                html += `</div>`;
+            }
+
+            visArea.innerHTML = html;
+        }
+
+        // Olay Dinleyicileri (Event Listeners)
+        function handleInput() {
+            tokenData = tokenizeText(inputEl.value);
+            currentStep = 1;
+            renderStep();
+        }
+
+        inputEl.addEventListener('input', handleInput);
+        
+        resetBtn.addEventListener('click', () => {
+            inputEl.value = "Bir denetim süreci başlattık!";
+            handleInput();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentStep < 4) {
+                currentStep++;
+                renderStep();
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentStep > 1) {
+                currentStep--;
+                renderStep();
+            }
+        });
+
+        stepBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const step = parseInt(e.target.getAttribute('data-step'));
+                if (step <= 4 && step >= 1) {
+                    currentStep = step;
+                    renderStep();
+                }
+            });
+        });
+
+        // Başlangıç Kurulumu
+        tokenData = tokenizeText(inputEl.value);
+        renderStep();
+    </script>
+</body>
+</html>

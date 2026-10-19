@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ortada Kaybolma Laboratuvarı</title>
+<style>
+:root{--bg:#eef2f4;--sf:#ffffff;--ink:#16262e;--mut:#5b6b73;--line:#cdd8dd;--in:#0f6b6b;--in-bg:#dcf0ee;--warn:#b86e00;--warn-bg:#fdf0d8;--bad:#b3322d;--bad-bg:#f8dddb;--ok:#1f7a3d;--ok-bg:#d9f0e0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0f1a1f;--sf:#17262d;--ink:#e6eef1;--mut:#9fb0b8;--line:#2d424b;--in:#5fd0c8;--in-bg:#123a3a;--warn:#f0b04a;--warn-bg:#3a2d12;--bad:#ff8a84;--bad-bg:#44201f;--ok:#6fdc90;--ok-bg:#163a22}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0f1a1f;--sf:#17262d;--ink:#e6eef1;--mut:#9fb0b8;--line:#2d424b;--in:#5fd0c8;--in-bg:#123a3a;--warn:#f0b04a;--warn-bg:#3a2d12;--bad:#ff8a84;--bad-bg:#44201f;--ok:#6fdc90;--ok-bg:#163a22}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 48px}
+h1{font:700 clamp(26px,5vw,38px)/1.15 Georgia,"Times New Roman",serif;margin:0 0 6px}
+.lead{color:var(--mut);margin:0 0 18px;max-width:64ch}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--sf);color:var(--ink);padding:10px 16px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--in);color:var(--sf);border-color:var(--in)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+.panel{background:var(--sf);border:1px solid var(--line);border-radius:14px;padding:18px}
+.panel[hidden]{display:none}
+h2{font:700 19px/1.3 Georgia,serif;margin:0 0 8px}
+.hint{color:var(--mut);font-size:14px;margin:0 0 10px}
+.btn{border:1px solid var(--line);background:var(--sf);color:var(--ink);padding:9px 14px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
+.btn:hover{border-color:var(--in)}
+.btn.pri{background:var(--in);color:var(--sf);border-color:var(--in);font-weight:700}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
+label{font-weight:600;font-size:14px}
+input[type=range]{width:100%;accent-color:var(--in)}
+.stage{height:150px;border:2px dashed var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-direction:column;margin:10px 0;text-align:center;padding:8px}
+.word{font:700 clamp(34px,9vw,56px)/1.1 Georgia,serif}
+.cnt{color:var(--mut);font-size:14px}
+textarea{width:100%;min-height:110px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+.cells{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:5px;margin:10px 0}
+.cell{border-radius:8px;padding:6px 4px;text-align:center;font-size:13px;border:1px solid var(--line);overflow:hidden;text-overflow:ellipsis}
+.cell b{display:block;font-size:11px;color:var(--mut);font-weight:600}
+.cell.ok{background:var(--ok-bg);border-color:var(--ok)}
+.cell.no{background:var(--bad-bg);border-color:var(--bad)}
+.res{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg);min-height:46px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.three div{border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;background:var(--bg)}
+.three strong{display:block;font-size:24px;font-family:Georgia,serif}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.two{grid-template-columns:1fr}}
+.chk{display:flex;gap:8px;align-items:center;margin:7px 0;font-weight:400;font-size:15px}
+.heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:3px;margin:10px 0}
+.hc{aspect-ratio:1;border-radius:5px;font-size:10px;display:flex;align-items:center;justify-content:center;color:var(--ink);border:1px solid var(--line);background:color-mix(in srgb,var(--in) calc(var(--a)*100%),transparent)}
+.hc.nd{outline:3px solid var(--warn);outline-offset:1px;font-weight:700}
+.bars{display:flex;align-items:flex-end;gap:3px;height:150px;border-bottom:2px solid var(--line);margin-top:22px;padding:0 2px}
+.bar{flex:1;background:var(--in);border-radius:4px 4px 0 0;min-height:2px;position:relative;transition:height .4s}
+.bar.h{background:var(--warn)}
+.bar span{position:absolute;top:-15px;left:-3px;right:-3px;text-align:center;font-size:9px;color:var(--mut)}
+.axis{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:4px}
+.big{font:700 38px/1 Georgia,serif}
+.note{font-size:13px;color:var(--mut);margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.inl{display:flex;gap:6px;flex-wrap:wrap;align-items:end}
+.inl input{width:70px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<h1>Ortada Kaybolma Laboratuvarı</h1>
+<p class="lead">Uzun bir listede en iyi başı ve sonu hatırlarız. Yapay zekâ modelleri de benzer bir örüntü gösterir. Önce kendi hafızanı dene, sonra modeli canlandıran simülasyonda ayarlarla oyna.</p>
+
+<div class="tabs" role="tablist">
+<button role="tab" id="t1" aria-selected="true">1. Sen dene</button>
+<button role="tab" id="t2" aria-selected="false">2. Model simülasyonu</button>
+</div>
+
+<section class="panel" id="p1">
+<h2>Hafıza oyunu</h2>
+<p class="hint">15 kelime sırayla görünecek. Not almak yok. Bittikten sonra aklında kalanları yaz.</p>
+<div class="row"><label for="spd">Hız: <b id="spdv"></b> sn / kelime</label></div>
+<input type="range" id="spd" min="0.8" max="2.5" step="0.1" value="1.4">
+<div class="stage" id="stage"><span class="cnt">Hazır olunca başlat.</span></div>
+<div class="row"><button class="btn pri" id="start">Başlat</button></div>
+<div id="recall" hidden>
+<label for="ans">Hatırladığın kelimeleri yaz (boşluk, virgül veya alt satırla ayır)</label>
+<textarea id="ans"></textarea>
+<div class="row"><button class="btn pri" id="check">Sonucu göster</button></div>
+</div>
+<div id="out" hidden>
+<div class="cells" id="cells"></div>
+<div class="three" id="three"></div>
+<div class="res" id="hres"></div>
+</div>
+
+<h2 style="margin-top:24px">Sınıf ortalaması (eğitmen için)</h2>
+<p class="hint">Katılımcılar sonuçlarını sohbete yazsın (baştan, ortadan, sondan kaç kelime). Eğitmen buraya girer, ortalama U şekli ortaya çıkar.</p>
+<div class="inl">
+<div><label for="a1">Baş (1-5)</label><br><input id="a1" type="number" min="0" max="5"></div>
+<div><label for="a2">Orta (6-10)</label><br><input id="a2" type="number" min="0" max="5"></div>
+<div><label for="a3">Son (11-15)</label><br><input id="a3" type="number" min="0" max="5"></div>
+<button class="btn" id="addc">Ekle</button><button class="btn" id="clrc">Sıfırla</button>
+</div>
+<div class="bars" id="cbars" style="height:120px;max-width:360px"></div>
+<div class="axis" style="max-width:360px"><span>Baş</span><span>Orta</span><span>Son</span></div>
+<div class="stat cnt" id="cinfo" style="margin-top:6px">Henüz veri yok.</div>
+</section>
+
+<section class="panel" id="p2" hidden>
+<div class="two">
+<div>
+<h2>Deney ayarları</h2>
+<label for="n">Belge sayısı: <b id="nv"></b></label>
+<input type="range" id="n" min="5" max="50" value="20">
+<label for="pos">Cevabın bulunduğu belge: <b id="pv"></b></label>
+<input type="range" id="pos" min="1" max="20" value="10">
+<h2 style="margin-top:14px">Önlemler</h2>
+<label class="chk"><input type="checkbox" id="rep"> Soruyu belgelerin sonunda tekrar et</label>
+<label class="chk"><input type="checkbox" id="chunk"> Belgeleri 10’arlı gruplara böl</label>
+<label class="chk"><input type="checkbox" id="quote"> Cevabı alıntıyla desteklet</label>
+</div>
+<div>
+<h2>Modelin dikkati</h2>
+<p class="hint">Koyu kutu = yüksek dikkat. Turuncu çerçeve = cevabın olduğu belge.</p>
+<div class="heat" id="heat"></div>
+<div>Cevabı bulma şansı: <span class="big" id="pct"></span></div>
+<div class="cnt" id="verd"></div>
+</div>
+</div>
+<div class="row">
+<button class="btn pri" id="run1">Bu konumda 30 kez dene</button>
+<button class="btn" id="runall">Tüm konumları tara</button>
+</div>
+<div class="res" id="res">Ayarları değiştir ve kutuların nasıl koyulaşıp açıldığına bak.</div>
+<div class="bars" id="bars"></div>
+<div class="axis"><span>Başta</span><span>Ortada</span><span>Sonda</span></div>
+<p class="note">Bu bir canlandırmadır, gerçek bir modeli ölçmez. Gösterilen şekil, 2023’te yayımlanan “Lost in the Middle” araştırmasındaki U eğrisine dayanır. Yeni modellerde etki daha zayıftır ama çok uzun girdilerde sürebilir. Kendi aracında aynı testi yapmak en güvenilir yoldur.</p>
+</section>
+</main>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+function tab(n){$('p1').hidden=n!==1;$('p2').hidden=n!==2;$('t1').setAttribute('aria-selected',n===1);$('t2').setAttribute('aria-selected',n===2)}
+$('t1').onclick=function(){tab(1)};$('t2').onclick=function(){tab(2)};
+
+/* 1. hafıza oyunu */
+var POOL=['elma','masa','kapı','deniz','kalem','bulut','köprü','saat','ayna','çanta','mum','harita','bisiklet','kitap','lamba','zeytin','şemsiye','telefon','gözlük','nehir','tren','halı','balon','merdiven','kedi','defter','anahtar','pencere','çorba','gitar'];
+var words=[],timer=null;
+function lc(s){return s.toLocaleLowerCase('tr-TR')}
+$('spd').oninput=function(){$('spdv').textContent=(+this.value).toFixed(1)};$('spdv').textContent='1.4';
+$('start').onclick=function(){
+ clearInterval(timer);
+ words=POOL.slice().sort(function(){return Math.random()-.5}).slice(0,15);
+ $('recall').hidden=true;$('out').hidden=true;$('ans').value='';
+ var i=0,st=$('stage'),ms=+$('spd').value*1000;
+ $('start').disabled=true;
+ function show(){
+  if(i>=15){clearInterval(timer);st.innerHTML='<span class="cnt">Bitti. Şimdi hatırladıklarını yaz.</span>';$('recall').hidden=false;$('start').disabled=false;$('start').textContent='Yeniden başlat';$('ans').focus();return}
+  st.textContent='';var w=document.createElement('div');w.className='word';w.textContent=words[i];
+  var c=document.createElement('div');c.className='cnt';c.textContent=(i+1)+' / 15';st.appendChild(w);st.appendChild(c);i++;
+ }
+ st.innerHTML='<span class="cnt">Hazırlan…</span>';
+ setTimeout(function(){show();timer=setInterval(show,ms)},1000);
+};
+$('check').onclick=function(){
+ var given=lc($('ans').value).split(/[\s,;]+/).filter(Boolean),hit=[];
+ var cl=$('cells');cl.textContent='';
+ words.forEach(function(w,i){
+  var ok=given.indexOf(lc(w))>-1;hit.push(ok);
+  var d=document.createElement('div');d.className='cell '+(ok?'ok':'no');
+  var b=document.createElement('b');b.textContent=(i+1)+'. sıra';d.appendChild(b);d.appendChild(document.createTextNode(w));cl.appendChild(d);
+ });
+ var g=[0,0,0];hit.forEach(function(h,i){if(h)g[Math.floor(i/5)]++});
+ var t=$('three');t.textContent='';
+ ['Baş (1-5)','Orta (6-10)','Son (11-15)'].forEach(function(l,k){
+  var d=document.createElement('div');var s=document.createElement('strong');s.textContent=g[k]+'/5';d.appendChild(s);d.appendChild(document.createTextNode(l));t.appendChild(d);
+ });
+ var e=(g[0]+g[2])/2,m=g[1],msg;
+ if(e>m)msg='Baş ve sonda ortalama '+e.toFixed(1)+', ortada '+m+' kelime hatırladın. Ortada kaybolma etkisi sende de görüldü.';
+ else if(e===m)msg='Bu turda üç bölgede de benzer sonuç aldın. Hızı artırıp yeniden dene, etki genelde belirginleşir.';
+ else msg='Bu turda ortayı daha iyi hatırladın. Tek deneme kesin sonuç vermez, sınıf ortalamasına bak.';
+ $('hres').textContent=msg+' Sonucunu sohbete yaz: '+g[0]+'-'+g[1]+'-'+g[2];
+ $('out').hidden=false;
+};
+var cs=[0,0,0],cn=0;
+function cdraw(){
+ var b=$('cbars');b.textContent='';
+ cs.forEach(function(v){var a=cn?v/cn:0;var d=document.createElement('div');d.className='bar';d.style.height=(a/5*95)+'px';var s=document.createElement('span');s.textContent=cn?a.toFixed(1):'';d.appendChild(s);b.appendChild(d)});
+ $('cinfo').textContent=cn?cn+' katılımcı eklendi. Her bölge 5 üzerinden.':'Henüz veri yok.';
+}
+$('addc').onclick=function(){
+ var v=['a1','a2','a3'].map(function(i){return Math.max(0,Math.min(5,+$(i).value||0))});
+ if(!$('a1').value&&!$('a2').value&&!$('a3').value)return;
+ v.forEach(function(x,i){cs[i]+=x});cn++;['a1','a2','a3'].forEach(function(i){$(i).value=''});cdraw();
+};
+$('clrc').onclick=function(){cs=[0,0,0];cn=0;cdraw()};
+cdraw();
+
+/* 2. model simülasyonu */
+function att(j,n){if(n<=1)return 1;var x=(j-1)/(n-1),u=Math.pow(2*x-1,2),d=Math.min(.6,.08+n*.014);return 1-d*(1-u)}
+function pe(i){
+ var N=+$('n').value,n=N,j=i;
+ if($('chunk').checked){var k=Math.floor((i-1)/10);n=Math.min(10,N-k*10);j=i-k*10}
+ var p=att(j,n);
+ if($('rep').checked)p=1-(1-p)*.5;
+ if($('quote').checked)p+=.06;
+ return Math.min(.98,p);
+}
+function base(i){var N=+$('n').value,n=N,j=i;if($('chunk').checked){var k=Math.floor((i-1)/10);n=Math.min(10,N-k*10);j=i-k*10}return att(j,n)}
+function bars(vals,pk){
+ var b=$('bars');b.textContent='';
+ vals.forEach(function(v,i){var d=document.createElement('div');d.className='bar'+(i+1===pk?' h':'');d.style.height=(v/30*130)+'px';var s=document.createElement('span');s.textContent=v;d.appendChild(s);b.appendChild(d)});
+}
+function trial(i){var h=0;for(var k=0;k<30;k++)if(Math.random()<pe(i))h++;return h}
+function upd(){
+ var N=+$('n').value,ps=$('pos');ps.max=N;if(+ps.value>N)ps.value=N;
+ var pos=+ps.value;$('nv').textContent=N;$('pv').textContent=pos;
+ var h=$('heat');h.textContent='';
+ for(var i=1;i<=N;i++){var d=document.createElement('div');d.className='hc'+(i===pos?' nd':'');d.style.setProperty('--a',(.1+.9*pe(i)).toFixed(2));d.textContent=i;h.appendChild(d)}
+ var p=pe(pos);$('pct').textContent='%'+Math.round(p*100);
+ $('verd').textContent=p>.85?'Güvenli bölge: cevap rahatça bulunur.':p>.65?'Orta risk: bazen kaçırılır.':'Riskli bölge: cevap sık sık kaçırılır.';
+}
+['n','pos','rep','chunk','quote'].forEach(function(i){$(i).oninput=upd;$(i).onchange=upd});
+$('run1').onclick=function(){
+ var pos=+$('pos').value,N=+$('n').value,hh=trial(pos);
+ $('res').textContent='Belge '+pos+' / '+N+': 30 denemenin '+hh+'’unda doğru cevap bulundu (%'+Math.round(hh/30*100)+').';
+ var a=[];for(var i=1;i<=N;i++)a.push(0);a[pos-1]=hh;bars(a,pos);
+};
+$('runall').onclick=function(){
+ var N=+$('n').value,a=[];for(var i=1;i<=N;i++)a.push(trial(i));
+ var tot=a.reduce(function(s,x){return s+x},0);
+ bars(a,+$('pos').value);
+ $('res').textContent='Tüm konumlarda ortalama başarı: %'+Math.round(tot/(N*30)*100)+'. En düşük çubuklar listenin ortasında toplanıyor mu bak.';
+};
+upd();bars([],0);
+})();
+</script>
+</body>
+</html>

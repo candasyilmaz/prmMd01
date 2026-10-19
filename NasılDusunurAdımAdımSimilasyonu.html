@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yapay Zeka Nasıl Düşünür?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#151e2e', 900: '#0f172a', 950: '#020617' },
+                        teal: { 400: '#2dd4bf', 500: '#14b8a6' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        
+        /* Layout Transitions */
+        .step-panel { display: none; opacity: 0; transition: opacity 0.4s ease; height: 100%; flex-direction: column; }
+        .step-panel.active { display: flex; opacity: 1; }
+        
+        /* Step 1: Context */
+        .word-scatter-container { position: relative; width: 100%; height: 350px; }
+        .floating-word { position: absolute; padding: 0.5rem 1rem; background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem; transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; color: #cbd5e1; }
+        .drop-zone { border: 2px dashed #475569; border-radius: 1rem; position: absolute; bottom: 0; width: 45%; height: 200px; display: flex; flex-direction: column; align-items: center; padding-top: 1rem; transition: all 1s; opacity: 0.3; }
+        
+        /* Step 2: Attention */
+        .sentence-box { position: relative; font-size: 1.75rem; line-height: 2.5; text-align: center; }
+        .focus-token { display: inline-block; padding: 0.25rem 0.75rem; margin: 0.25rem; border-radius: 0.5rem; transition: all 0.8s ease; position: relative; z-index: 10; border: 2px solid transparent; }
+        .focus-token.faded { opacity: 0.2; filter: grayscale(100%); }
+        .focus-token.highlight { color: #2dd4bf; border-color: #2dd4bf; background: rgba(45, 212, 191, 0.1); transform: scale(1.05); }
+        #svg-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+
+        /* Step 3 & 4: Probability Pool & Loop */
+        .pool-bar { width: 0%; transition: width 0.8s ease-out; }
+        .pool-item { transition: all 0.2s ease; border: 2px solid transparent; }
+        .pool-item.shuffle-active { border-color: #fbbf24; background-color: rgba(251, 191, 36, 0.1); transform: scale(1.02); }
+        .pool-item.selected { border-color: #2dd4bf; background-color: rgba(45, 212, 191, 0.1); }
+        
+        .flying-word { position: absolute; font-size: 1.5rem; font-weight: 700; color: #2dd4bf; transition: all 1s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; }
+        
+        .loop-icon { transition: transform 1s ease; opacity: 0; }
+        .loop-icon.spin { opacity: 1; transform: rotate(-360deg); }
+    </style>
+</head>
+<body class="flex h-screen w-screen">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-72 bg-slate-950 border-r border-slate-800 flex flex-col z-20">
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="text-xl font-bold text-teal-400 leading-tight">Yapay Zeka<br>Üretim Mantığı</h1>
+            <p class="text-xs text-slate-500 mt-2">Denetim Simülasyonu</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2" id="nav-menu">
+            <button onclick="switchTab(1)" id="tab-1" class="w-full text-left p-3 rounded-lg bg-teal-900/30 text-teal-400 border border-teal-800/50 transition-colors font-medium">1. Bağlamı Koklama</button>
+            <button onclick="switchTab(2)" id="tab-2" class="w-full text-left p-3 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors font-medium">2. Odaklanma</button>
+            <button onclick="switchTab(3)" id="tab-3" class="w-full text-left p-3 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors font-medium">3. Olasılık Havuzu</button>
+            <button onclick="switchTab(4)" id="tab-4" class="w-full text-left p-3 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors font-medium">4. Üretim Döngüsü</button>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 bg-slate-900 relative flex flex-col">
+        <!-- Step 1: Bağlam -->
+        <div id="step-1" class="step-panel active p-10 h-full">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">1. Bağlamı Koklama</h2>
+                    <p class="text-slate-400 mt-2">Kelimeler konularına göre "mahallelere" ayrılır.</p>
+                </div>
+                <button onclick="playStep1()" class="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-lg shadow-lg shadow-teal-500/20 transition-all">Animasyonu Oynat <i class="fa-solid fa-play ml-2"></i></button>
+            </div>
+            
+            <div class="flex-1 bg-slate-850 rounded-2xl border border-slate-700 p-8 flex flex-col justify-center">
+                <div class="word-scatter-container" id="s1-container">
+                    <!-- Drop Zones -->
+                    <div id="zone-tip" class="drop-zone left-[2%]" style="border-color: #64748b;">
+                        <h3 class="text-slate-400 font-bold text-xl uppercase tracking-wider transition-colors duration-1000">Tıp Reyonu</h3>
+                    </div>
+                    <div id="zone-finans" class="drop-zone right-[2%]" style="border-color: #64748b;">
+                        <h3 class="text-slate-400 font-bold text-xl uppercase tracking-wider transition-colors duration-1000">Finans / Denetim</h3>
+                    </div>
+                    
+                    <!-- Words -->
+                    <div id="w-recete" class="floating-word" style="left: 10%; top: 10%;">Reçete</div>
+                    <div id="w-fatura" class="floating-word" style="left: 40%; top: 20%;">Fatura</div>
+                    <div id="w-ilac" class="floating-word" style="left: 70%; top: 5%;">İlaç</div>
+                    <div id="w-butce" class="floating-word" style="left: 20%; top: 40%;">Bütçe</div>
+                    <div id="w-ihale" class="floating-word" style="left: 60%; top: 35%;">İhale</div>
+                    <div id="w-irsaliye" class="floating-word" style="left: 80%; top: 50%;">İrsaliye</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Odaklanma -->
+        <div id="step-2" class="step-panel p-10 h-full">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">2. İpuçlarını Birbirine Bağlama</h2>
+                    <p class="text-slate-400 mt-2">Dolgu kelimeleri elenir, kritik bağlar kırmızı iplerle kurulur.</p>
+                </div>
+                <button onclick="playStep2()" class="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-lg shadow-lg shadow-teal-500/20 transition-all">Animasyonu Oynat <i class="fa-solid fa-play ml-2"></i></button>
+            </div>
+            
+            <div class="flex-1 bg-slate-850 rounded-2xl border border-slate-700 p-8 flex items-center justify-center relative">
+                <svg id="svg-layer"></svg>
+                <div class="sentence-box font-medium text-slate-300">
+                    <span class="focus-token" id="t-2024">2024</span>
+                    <span class="focus-token" id="t-yili">yılı</span>
+                    <span class="focus-token" id="t-icin">için</span>
+                    <span class="focus-token" id="t-dogrudan">doğrudan temin</span>
+                    <span class="focus-token" id="t-limit">limit aşımı</span>
+                    <span class="focus-token" id="t-risk">risklerini</span>
+                    <span class="focus-token" id="t-listele">listele.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Olasılık Havuzu -->
+        <div id="step-3" class="step-panel p-10 h-full">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">3. Olasılık Havuzu</h2>
+                    <p class="text-slate-400 mt-2">Zihinsel rulet masasında ihtimaller tartılır ve kura çekilir.</p>
+                </div>
+                <button onclick="playStep3()" class="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-lg shadow-lg shadow-teal-500/20 transition-all">Kura Çek <i class="fa-solid fa-play ml-2"></i></button>
+            </div>
+            
+            <div class="flex-1 bg-slate-850 rounded-2xl border border-slate-700 p-10 flex flex-col">
+                <div class="text-2xl text-slate-300 mb-12 pb-4 border-b border-slate-700 text-center">
+                    İnceleme sonucunda tespit edilen açık bir <span class="border-b-2 border-dashed border-slate-500 inline-block w-32 ml-2"></span>
+                </div>
+                
+                <div class="max-w-2xl mx-auto w-full space-y-4" id="s3-pool">
+                    <div class="pool-item bg-slate-900 p-4 rounded-xl flex items-center" id="opt-usul">
+                        <div class="w-32 font-bold text-lg text-slate-200">usulsüzlük</div>
+                        <div class="flex-1 h-8 bg-slate-800 rounded-lg overflow-hidden ml-4 relative">
+                            <div class="pool-bar h-full bg-teal-500" id="bar-usul"></div>
+                            <span class="absolute inset-0 flex items-center pl-3 font-bold text-slate-900 text-sm">60%</span>
+                        </div>
+                    </div>
+                    <div class="pool-item bg-slate-900 p-4 rounded-xl flex items-center" id="opt-hata">
+                        <div class="w-32 font-bold text-lg text-slate-200">hata</div>
+                        <div class="flex-1 h-8 bg-slate-800 rounded-lg overflow-hidden ml-4 relative">
+                            <div class="pool-bar h-full bg-slate-500" id="bar-hata"></div>
+                            <span class="absolute inset-0 flex items-center pl-3 font-bold text-white text-sm">25%</span>
+                        </div>
+                    </div>
+                    <div class="pool-item bg-slate-900 p-4 rounded-xl flex items-center" id="opt-eksik">
+                        <div class="w-32 font-bold text-lg text-slate-200">eksiklik</div>
+                        <div class="flex-1 h-8 bg-slate-800 rounded-lg overflow-hidden ml-4 relative">
+                            <div class="pool-bar h-full bg-slate-600" id="bar-eksik"></div>
+                            <span class="absolute inset-0 flex items-center pl-3 font-bold text-white text-sm">15%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Döngü -->
+        <div id="step-4" class="step-panel p-10 h-full">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">4. Otoregresif Döngü</h2>
+                    <p class="text-slate-400 mt-2">Seçilen kelime eklenir, sistem bir sonraki kelime için baştan başlar.</p>
+                </div>
+                <button onclick="playStep4()" id="btn-s4" class="px-6 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-lg shadow-lg shadow-teal-500/20 transition-all">Döngüyü Çalıştır <i class="fa-solid fa-play ml-2"></i></button>
+            </div>
+            
+            <div class="flex-1 bg-slate-850 rounded-2xl border border-slate-700 p-10 flex flex-col relative overflow-hidden" id="s4-container">
+                <div class="text-2xl text-slate-300 mb-12 pb-4 border-b border-slate-700 text-center relative z-10" id="s4-sentence">
+                    İnceleme sonucunda tespit edilen açık bir <span id="s4-target" class="inline-block w-32 ml-2 transition-colors"></span>
+                </div>
+                
+                <div class="flex flex-1 items-center justify-between max-w-4xl mx-auto w-full">
+                    <!-- Pool -->
+                    <div class="w-3/5 space-y-4 relative z-10" id="s4-pool">
+                        <div class="pool-item bg-slate-900 p-4 rounded-xl flex items-center selected border-teal-500" id="s4-winner-box">
+                            <div class="w-32 font-bold text-lg text-teal-400" id="s4-winner-text">usulsüzlük</div>
+                            <div class="flex-1 h-8 bg-slate-800 rounded-lg overflow-hidden ml-4">
+                                <div class="h-full bg-teal-500 w-[60%]"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loop Icon -->
+                    <div class="w-2/5 flex flex-col items-center justify-center">
+                        <i class="fa-solid fa-rotate-left text-6xl text-teal-500 loop-icon" id="s4-loop-icon"></i>
+                        <p class="text-teal-400 font-bold mt-4 opacity-0 transition-opacity" id="s4-loop-text">Yeni Havuz Hesaplanıyor...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- Navigation Logic ---
+        function switchTab(stepIndex) {
+            // Update tabs
+            for(let i=1; i<=4; i++) {
+                const tab = document.getElementById(`tab-${i}`);
+                if(i === stepIndex) {
+                    tab.className = "w-full text-left p-3 rounded-lg bg-teal-900/30 text-teal-400 border border-teal-800/50 transition-colors font-medium";
+                } else {
+                    tab.className = "w-full text-left p-3 rounded-lg text-slate-400 hover:bg-slate-900 border border-transparent transition-colors font-medium";
+                }
+                
+                const panel = document.getElementById(`step-${i}`);
+                if(i === stepIndex) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            }
+            resetAnimations();
+        }
+
+        function resetAnimations() {
+            isS1Played = false;
+            isS2Played = false;
+            isS3Played = false;
+            isS4Played = false;
+
+            // Reset S1
+            document.getElementById('w-recete').style.cssText = "left: 10%; top: 10%;";
+            document.getElementById('w-fatura').style.cssText = "left: 40%; top: 20%;";
+            document.getElementById('w-ilac').style.cssText = "left: 70%; top: 5%;";
+            document.getElementById('w-butce').style.cssText = "left: 20%; top: 40%;";
+            document.getElementById('w-ihale').style.cssText = "left: 60%; top: 35%;";
+            document.getElementById('w-irsaliye').style.cssText = "left: 80%; top: 50%;";
+            
+            ['zone-tip', 'zone-finans'].forEach(id => {
+                document.getElementById(id).style.borderColor = "#64748b";
+                document.getElementById(id).style.opacity = "0.3";
+                document.getElementById(id).style.backgroundColor = "transparent";
+                document.querySelector(`#${id} h3`).style.color = "#94a3b8";
+            });
+            ['w-recete', 'w-ilac', 'w-fatura', 'w-butce', 'w-ihale', 'w-irsaliye'].forEach(id => {
+                document.getElementById(id).style.color = "#cbd5e1";
+                document.getElementById(id).style.borderColor = "#334155";
+            });
+
+            // Reset S2
+            document.getElementById('svg-layer').innerHTML = '';
+            document.querySelectorAll('.focus-token').forEach(el => {
+                el.classList.remove('faded', 'highlight');
+            });
+
+            // Reset S3
+            document.querySelectorAll('.pool-bar').forEach(el => el.style.width = '0%');
+            document.querySelectorAll('.pool-item').forEach(el => el.classList.remove('shuffle-active', 'selected'));
+
+            // Reset S4
+            const s4Target = document.getElementById('s4-target');
+            s4Target.innerText = "";
+            s4Target.classList.remove('border-none', 'text-teal-400');
+            s4Target.classList.add('border-b-2', 'border-dashed', 'border-slate-500');
+            
+            document.getElementById('btn-s4').disabled = false;
+            document.getElementById('btn-s4').innerHTML = 'Döngüyü Çalıştır <i class="fa-solid fa-play ml-2"></i>';
+            document.getElementById('btn-s4').classList.replace('bg-slate-600', 'bg-teal-500');
+            
+            document.getElementById('s4-loop-icon').classList.remove('spin');
+            document.getElementById('s4-loop-text').style.opacity = '0';
+            
+            // Rebuild initial S4 pool
+            document.getElementById('s4-pool').innerHTML = `
+                <div class="pool-item bg-slate-900 p-4 rounded-xl flex items-center border-teal-500 shadow-lg shadow-teal-900/20" id="s4-winner-box">
+                    <div class="w-32 font-bold text-lg text-teal-400" id="s4-winner-text">usulsüzlük</div>
+                    <div class="flex-1 h-8 bg-slate-800 rounded-lg overflow-hidden ml-4">
+                        <div class="h-full bg-teal-500 w-[60%]"></div>
+                    </div>
+                </div>
+            `;
+            // Remove any floating words left over
+            document.querySelectorAll('.flying-word').forEach(el => el.remove());
+        }
+
+        // --- Step 1 Logic ---
+        let isS1Played = false;
+        function playStep1() {
+            if(isS1Played) return;
+            isS1Played = true;
+
+            // Move to zones
+            document.getElementById('w-recete').style.cssText = "left: 8%; top: 40%; color: #2dd4bf; border-color: #0f766e;";
+            document.getElementById('w-ilac').style.cssText = "left: 25%; top: 60%; color: #2dd4bf; border-color: #0f766e;";
+            
+            document.getElementById('w-fatura').style.cssText = "left: 60%; top: 40%; color: #38bdf8; border-color: #0369a1;";
+            document.getElementById('w-butce').style.cssText = "left: 75%; top: 30%; color: #38bdf8; border-color: #0369a1;";
+            document.getElementById('w-ihale').style.cssText = "left: 55%; top: 65%; color: #38bdf8; border-color: #0369a1;";
+            document.getElementById('w-irsaliye').style.cssText = "left: 80%; top: 70%; color: #38bdf8; border-color: #0369a1;";
+
+            // Highlight Zones
+            setTimeout(() => {
+                document.getElementById('zone-tip').style.borderColor = "#0f766e";
+                document.getElementById('zone-tip').style.backgroundColor = "rgba(15, 118, 110, 0.1)";
+                document.getElementById('zone-tip').style.opacity = "1";
+                document.querySelector('#zone-tip h3').style.color = "#2dd4bf";
+
+                document.getElementById('zone-finans').style.borderColor = "#0369a1";
+                document.getElementById('zone-finans').style.backgroundColor = "rgba(3, 105, 161, 0.1)";
+                document.getElementById('zone-finans').style.opacity = "1";
+                document.querySelector('#zone-finans h3').style.color = "#38bdf8";
+            }, 800);
+        }
+
+        // --- Step 2 Logic ---
+        let isS2Played = false;
+        function playStep2() {
+            if(isS2Played) return;
+            isS2Played = true;
+
+            const fadeIds = ['t-yili', 't-icin'];
+            const highlightIds = ['t-dogrudan', 't-limit', 't-risk'];
+
+            // Fade unimportant
+            fadeIds.forEach(id => document.getElementById(id).classList.add('faded'));
+
+            // Highlight important and draw lines
+            setTimeout(() => {
+                highlightIds.forEach(id => document.getElementById(id).classList.add('highlight'));
+
+                setTimeout(() => {
+                    drawSvgLines(highlightIds);
+                }, 400);
+
+            }, 600);
+        }
+
+        function drawSvgLines(ids) {
+            const svg = document.getElementById('svg-layer');
+            const container = svg.parentElement;
+            const containerRect = container.getBoundingClientRect();
+
+            for (let i = 0; i < ids.length - 1; i++) {
+                const el1 = document.getElementById(ids[i]).getBoundingClientRect();
+                const el2 = document.getElementById(ids[i+1]).getBoundingClientRect();
+
+                // Calculate center points relative to the SVG container
+                const x1 = el1.left - containerRect.left + el1.width / 2;
+                const y1 = el1.top - containerRect.top + el1.height / 2;
+                const x2 = el2.left - containerRect.left + el2.width / 2;
+                const y2 = el2.top - containerRect.top + el2.height / 2;
+
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", x1);
+                line.setAttribute("y1", y1);
+                line.setAttribute("x2", x2);
+                line.setAttribute("y2", y2);
+                line.setAttribute("stroke", "#ef4444"); // Red line
+                line.setAttribute("stroke-width", "3");
+                line.setAttribute("stroke-dasharray", "6,6");
+                
+                // Add simple animation
+                const length = Math.sqrt(Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2));
+                line.style.strokeDashoffset = length;
+                line.style.strokeDasharray = length;
+                line.style.transition = "stroke-dashoffset 1s ease-in-out";
+                
+                svg.appendChild(line);
+                
+                // Trigger reflow
+                line.getBoundingClientRect();
+                line.style.strokeDashoffset = "0";
+            }
+        }
+
+        // --- Step 3 Logic ---
+        let isS3Played = false;
+        function playStep3() {
+            if(isS3Played) return;
+            isS3Played = true;
+
+            const opts = ['opt-usul', 'opt-hata', 'opt-eksik'];
+            let ticks = 0;
+            let current = 0;
+
+            // Fill bars slightly to show they exist
+            document.getElementById('bar-usul').style.width = "60%";
+            document.getElementById('bar-hata').style.width = "25%";
+            document.getElementById('bar-eksik').style.width = "15%";
+
+            // Shuffle effect
+            const shuffle = setInterval(() => {
+                opts.forEach(id => document.getElementById(id).classList.remove('shuffle-active'));
+                document.getElementById(opts[current]).classList.add('shuffle-active');
+                
+                current = (current + 1) % opts.length;
+                ticks++;
+
+                if (ticks > 12) {
+                    clearInterval(shuffle);
+                    // Land on usulsüzlük
+                    opts.forEach(id => document.getElementById(id).classList.remove('shuffle-active'));
+                    document.getElementById('opt-usul').classList.add('selected');
+                }
+            }, 150);
+        }
+
+        // --- Step 4 Logic ---
+        let isS4Played = false;
+        function playStep4() {
+            if(isS4Played) return;
+            isS4Played = true;
+            document.getElementById('btn-s4').disabled = true;
+            document.getElementById('btn-s4').classList.replace('bg-teal-500', 'bg-slate-600');
+
+            const winnerBox = document.getElementById('s4-winner-box');
+            const winnerText = document.getElementById('s4-winner-text');
+            const targetSpan = document.getElementById('s4-target');
+            const container = document.getElementById('s4-container');
+            
+            // 1. Create flying word
+            const startRect = winnerText.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            
+            const flying = document.createElement('div');
+            flying.className = 'flying-word';
+            flying.innerText = 'usulsüzlük';
+            
+            // Set initial position relative to container
+            flying.style.left = (startRect.left - containerRect.left) + 'px';
+            flying.style.top = (startRect.top - containerRect.top) + 'px';
+            
+            container.appendChild(flying);
+
+            // 2. Setup target position
+            // Put ghost text to measure
+            targetSpan.innerText = 'usulsüzlük';
+            targetSpan.style.color = 'transparent';
+            const targetRect = targetSpan.getBoundingClientRect();
+
+            // 3. Trigger fly animation
+            setTimeout(() => {
+                flying.style.left = (targetRect.left - containerRect.left) + 'px';
+                flying.style.top = (targetRect.top - containerRect.top) + 'px';
+                
+                // 4. Arrive and embed
+                setTimeout(() => {
+                    flying.remove();
+                    targetSpan.style.color = '#2dd4bf'; // teal-400
+                    targetSpan.classList.remove('border-b-2', 'border-dashed', 'border-slate-500');
+                    targetSpan.classList.add('border-none');
+                    
+                    // 5. Spin loop and reset pool
+                    triggerS4Loop();
+                    
+                }, 1000); // fly duration
+            }, 100);
+        }
+
+        function triggerS4Loop() {
+            const icon = document.getElementById('s4-loop-icon');
+            const text = document.getElementById('s4-loop-text');
+            const pool = document.getElementById('s4-pool');
+
+            icon.classList.add('spin');
+            text.style.opacity = '1';
+
+            // Fade out old pool
+            pool.style.transition = "opacity 0.5s";
+            pool.style.opacity = "0";
+
+            setTimeout(() => {
+                // Build new pool
+                pool.innerHTML = `
+                    <div class="pool-item bg-slate-900 p-4 rounded-xl flex items-center">
+                        <div class="w-32 font-bold text-lg text-slate-200">tespit</div>
+                        <div class="flex-1 h-8 bg-slate-800 rounded-lg overflow-hidden ml-4 relative">
+                            <div class="h-full bg-teal-500 w-0" style="transition: width 1s ease 0.5s; width: 70%"></div>
+                            <span class="absolute inset-0 flex items-center pl-3 font-bold text-slate-900 text-sm">70%</span>
+                        </div>
+                    </div>
+                    <div class="pool-item bg-slate-900 p-4 rounded-xl flex items-center mt-4">
+                        <div class="w-32 font-bold text-lg text-slate-200">durumu</div>
+                        <div class="flex-1 h-8 bg-slate-800 rounded-lg overflow-hidden ml-4 relative">
+                            <div class="h-full bg-slate-500 w-0" style="transition: width 1s ease 0.5s; width: 20%"></div>
+                            <span class="absolute inset-0 flex items-center pl-3 font-bold text-white text-sm">20%</span>
+                        </div>
+                    </div>
+                    <div class="pool-item bg-slate-900 p-4 rounded-xl flex items-center mt-4">
+                        <div class="w-32 font-bold text-lg text-slate-200">riski</div>
+                        <div class="flex-1 h-8 bg-slate-800 rounded-lg overflow-hidden ml-4 relative">
+                            <div class="h-full bg-slate-600 w-0" style="transition: width 1s ease 0.5s; width: 10%"></div>
+                            <span class="absolute inset-0 flex items-center pl-3 font-bold text-white text-sm">10%</span>
+                        </div>
+                    </div>
+                `;
+                
+                pool.style.opacity = "1";
+                icon.classList.remove('spin');
+                text.innerText = "Yeni Havuz Hazır!";
+                
+                setTimeout(() => {
+                    text.style.opacity = "0";
+                }, 1500);
+
+            }, 1000); // Wait for spin
+        }
+    </script>
+</body>
+</html>
